@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+
+
+<head>
+  <title>LTVis</title> <!-- or some other such name -->
+
+  <meta charset="utf-8"/>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0,
+        user-scalable=no" />
+  
+  
+  <!-- Stylesheets -->
+  <link href='https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.css' rel='stylesheet'/>
+  <link href='style.css' rel='stylesheet'/>
+
+  <!-- Javascript -->
+  <script src='https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.js'></script>
+  <script src="lib/jquery/jquery-3.1.1.js"></script>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/js-yaml/3.4.3/js-yaml.min.js"></script>
+
+  <!-- Scripts for loading shapefiles -->
+  <script src="lib/proj4/proj4.js"></script>
+  <script src="lib/shp2geojson/lib/jszip.js"></script>
+  <script src="lib/shp2geojson/lib/jszip-utils.js"></script>
+  <!--[if IE]>
+    <script type="text/javascript" src="lib/shp2geojson/lib/jszip-utils-ie.js"></script>
+  <![endif]-->
+  <script src="lib/shp2geojson/preview.js"></script>
+  <script src="lib/shp2geojson/preprocess.js"></script>
+  <!-- END scripts for loading shapefiles -->
+
+
+  
+  <script src="LTVis.js"></script>
+  
+  
+</head>
+
+
+<body>
+
+<div id="map"></div>
+
+<button class="iconBtn" id="infoBtn">
+  <svg class="icon">
+    <use xlink:href="iconDefs.svg#info" />
+  </svg>
+</button>
+
+<button class="iconBtn" id="menuBtn">
+  <svg class="icon">
+    <use xlink:href="iconDefs.svg#menu" />
+  </svg>
+</button>
+
+<button class="iconBtn" id="layerBtn">
+  <svg class="icon">
+    <use xlink:href="iconDefs.svg#layer" />
+  </svg>
+</button>
+
+<button class="iconBtn" id="downloadBtn">
+  <svg class="icon">
+    <use xlink:href="iconDefs.svg#download" />
+  </svg>
+</button>
+
+<div id="timelineContainer">
+  <div id="timeRangeContainer">
+  </div>
+  <div id="timelineButtonContainer">
+    <button class="iconBtn" id="chartBtn">
+      <svg class="icon">
+        <use xlink:href="iconDefs.svg#chart" />
+      </svg>
+    </button>
+    <button class="iconBtn" id="shapeBtn">
+      <svg class="icon">
+        <use xlink:href="iconDefs.svg#shape" />
+      </svg>
+    </button>
+  </div>
+</div>
+
+
+<div id="addPolygonsMenu" class="menuWindow">
+  <div class="menuWindowHeader">
+    <span class="close menu-close">&times;</span>
+    <h3>Add Polygon Layer</h3>
+  </div>
+  <div class="menuWindowContent">
+    <p>Some things to click on</p>
+    <button id="importDemoPolygonsButton" onclick="LTVis.importDemoPolygons()">Import Demo Polygons</button>
+  </div>
+</div>
+
+
+<!-- Data Selection Modal -->
+<div id="datasetModal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content" id="datasetModalContent">
+    <!-- Modal header -->
+    <div class="modal-header">
+      <span class="close modal-close">&times;</span> <!-- Click to close modal -->
+      <h2>Select Dataset</h2>
+    </div> <!-- End modal header -->
+    <!-- Modal body -->
+    <div class="modal-body">
+      <!-- Data selection divs, click to display data and close modal-->
+      <div class="dataSelection" id="minimum">
+        <div class="dataSelectionImage"><img src="assets/images/biomass_icon.jpg"></div>
+        <div class="dataSelectionText">
+          <h3>Minimum Biomass</h3>
+          description goes here
+        </div>
+      </div>
+      <div class="dataSelection" id="maximum">
+        <div class="dataSelectionImage"><img src="assets/images/disturbance_icon.jpg"></div>
+        <div class="dataSelectionText">
+          <h3>Maximum Biomass</h3>
+          description goes here
+        </div>
+      </div>
+      <div class="dataSelection" id="average">
+        <div class="dataSelectionImage"><img src="assets/images/disturbance_icon.jpg"></div>
+        <div class="dataSelectionText">
+          <h3>Average Biomass</h3>
+          description goes here
+        </div>
+      </div> <!-- End data selection divs -->
+    </div> <!-- End modal-body div -->
+  </div> <!-- End modal-content div -->
+</div> <!-- End datasetModal div -->
+
+
+</body>
+  
+</html>

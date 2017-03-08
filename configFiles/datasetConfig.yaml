@@ -1,0 +1,86 @@
+yearOfDisturbance: 
+  name: Year of Disturbance
+  description: Write a description!
+  date: 1/1/11
+  version: 1.0.0
+  resolution: 30 meter
+  dataType: -----
+  defaults: 
+    timeline: 2000
+    style: default
+  previewIcon: yearOfDisturbance_icon.png
+
+magnitudeOfDisturbance: 
+  name: Magnitude of Disturbance
+  description: Write a description!
+  date: 1/1/11
+  version: 1.0.0
+  resolution: 30 meter
+  dataType: -----
+  defaults: 
+    timeline: 2000
+    style: default
+  previewIcon: magnitudeOfDisturbance_icon.png
+
+attributedDisturbance: 
+  name: Attributed Disturbance
+  description: Write a description!
+  date: 1/1/11
+  version: 1.0.0
+  resolution: 30 meter
+  dataType: -----
+  defaults: 
+    timeline: 2000
+    style: default
+  previewIcon: attributedDisturbance_icon.png
+
+biomass: 
+  name: Biomass
+  description: Write a description!
+  date: 1/1/11
+  version: 1.0.0
+  resolution: 30 meter
+  dataType: -----
+  defaults: 
+    timeline: 2000
+    style: default
+  previewIcon: biomass_icon.png
+
+landcover: 
+  name: Landcover
+  description: Write a description!
+  date: 1/1/11
+  version: 1.0.0
+  resolution: 30 meter
+  dataType: -----
+  defaults: 
+    timeline: 2000
+    style: default
+  previewIcon: landcover_icon.png
+
+spectralInformation: 
+  name: Spectral Information
+  description: Write a description!
+  date: 1/1/11
+  version: 1.0.0
+  resolution: 30 meter
+  dataType: -----
+  defaults: 
+    timeline: 2000
+    style: default
+  previewIcon: spectralInformation_icon.png
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,20 @@
+# configures overall map properties and the reference layer.
+# Uses Dan's access token.
+
+map:
+  name: Example GNN Web Mapping application
+  accessToken: pk.eyJ1Ijoic3RlcGhkYW4iLCJhIjoieW5NQUY4NCJ9.yHOCOFEEcMpxHvlIZm_tmw
+  options:
+    minZoom: 6
+    maxZoom: 14
+  initialView:
+    center: [45.0, -122.40]
+    zoom: 6
+
+referenceLayer:
+  url: mapbox.streets
+  name: OpenStreetMap
+  styleLayer: mapbox://styles/mapbox/light-v8
+  options:
+    opacity: 1.0
+    noWrap: true
