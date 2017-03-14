@@ -21,31 +21,65 @@ LTVis.Map = (function() {
       return areaSummaryLayers;
     },
 
-    addPolygonLayer: function(geoJSON) {
-      polygonLayer.clearLayers();
-      polygonLayer.setGeoJSON(geoJSON);
-      polygonLayer.setStyle({
-          fillColor: "none",
-          weight: 1
-      });
-      polygonLayer.on("click", function(e) {
-          console.log(e);
-      });
-    },
-
     addJSONAreaSummaryLayer: function(geoJSON) {
-      var newLyr = L.mapbox.featureLayer();
-      newLyr.setGeoJSON(geoJSON);
-      newLyr.setStyle({
-          fillColor: "none",
-          weight: 1
+      areaSummaryLayers.clearLayers();
+
+      var newLyr = L.geoJSON(geoJSON, {
+        style: function() {
+          return {
+            stroke: true,
+            color: "rgb(0,0,0)",
+            weight: 1,
+            opacity: 1,
+            fill: true,
+            fillColor: "rgb(200,200,200)",
+            fillOpacity: 0.5
+          }
+        },
+        onEachFeature: onEachFeature
       });
+
+      function onEachFeature(feature, layer) {
+        layer.on({
+          mousemove: mousemove,
+          mouseout: mouseout,
+          click: click
+        })
+      }
+
+      function mousemove(e) {
+        var layer = e.target;
+        layer.setStyle({
+          weight: 3
+        })
+      }
+
+      function mouseout(e) {
+        var layer = e.target;
+        layer.setStyle({
+          weight: 1
+        })
+      }
+
+      function click(e) {
+        console.log(e.target);
+      }
+
       areaSummaryLayers.addLayer(newLyr);
 
-    },
 
-    stylePolygonLayer: function(styling) {
-      polygonLayer.setStyle(styling);
+
+      // newLyr.on("click", onclick);
+      // newLyr.on("mousemove", mousemove);
+
+      // function onclick(e) {
+      //   console.log(e);
+      // }
+
+      // function mousemove(e) {
+      //   // console.log(e);
+      // }
+
     },
 
     addCanvasLayer: function(layer) {
@@ -66,27 +100,35 @@ LTVis.Map = (function() {
     },
 
     init: function() {
+      // Load the config file for the map
       $.get('configFiles/mapConfig.yaml', null, function(data) {
         var mapConfig = jsyaml.load(data);
         L.mapbox.accessToken = mapConfig.map.accessToken;
 
+        // Create the leaflet map, pass in the config options
         map = L.mapbox.map('map', null, mapConfig.map.options);
 
+        // Set the initial map view
         map.setView(mapConfig.map.initialView.center, mapConfig.map.initialView.zoom);
 
+        // Add a basemap layer
         L.mapbox.styleLayer(
           mapConfig.referenceLayer.styleLayer,
           mapConfig.referenceLayer.options)
           .addTo(map);
 
+        // Create a featureLayer object to store summary area polygons
         areaSummaryLayers = L.mapbox.featureLayer().addTo(map);
         
         // L.control.attribution({position: "bottomleft"}).addTo(map);
+
+        // Add a scale bar to the map
         L.control.scale().addTo(map);
         
-        areaSummaryLayers.on("click", function(e) {
-          console.log(e);
-        });
+        // Add event listeners to the polygons in the area summary polygon layer
+        // areaSummaryLayers.on("click", function(e) {
+        //   console.log(e);
+        // });
       });
     }
   };
@@ -96,7 +138,6 @@ LTVis.TimelineChart = function(divID, initialData){
   "use strict";
 
   console.log(divID);
-
 
   var chartEnabled = true;
   var data = initialData;
@@ -138,7 +179,7 @@ LTVis.TimelineChart = function(divID, initialData){
   var sliderHandle = chart.append("g").attr("class", "sliderHandle")
       .style("pointer-events", "all");
 
-// Define the div for the tooltip
+  // Define the div for the tooltip
   var tooltip = d3.select("#" + divID).append("div") 
       .attr("class", "timelineChartTooltip")       
       .style("display", "none")

@@ -303,7 +303,9 @@ div.timelineChartTooltip {
   padding: 5px;
 }
 
-
+.menuBtn {
+  display: block;
+}
 
 
 
