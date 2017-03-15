@@ -33,25 +33,30 @@ LTVis.Map = (function() {
             opacity: 1,
             fill: true,
             fillColor: "rgb(200,200,200)",
-            fillOpacity: 0.5
+            fillOpacity: 0
           }
         },
         onEachFeature: onEachFeature
+      }).on("click", function(){
+        this.setStyle({
+          color: "rgb(0,0,0)"
+        })
       });
 
       function onEachFeature(feature, layer) {
         layer.on({
-          mousemove: mousemove,
+          mouseover: mouseover,
           mouseout: mouseout,
           click: click
         })
       }
 
-      function mousemove(e) {
+      function mouseover(e) {
         var layer = e.target;
         layer.setStyle({
           weight: 3
         })
+        
       }
 
       function mouseout(e) {
@@ -62,24 +67,21 @@ LTVis.Map = (function() {
       }
 
       function click(e) {
-        console.log(e.target);
+        // console.log(e.target);
+        var layer = e.target;
+        layer.setStyle({
+          color: "red"
+        })
+        if (!L.Browser.ie && !L.Browser.opera) {
+          layer.bringToFront();
+        }
+        console.log(e.target.feature.properties.id);
+        console.log(LTVis.testData[e.target.feature.properties.id]);
+        var data = LTVis.testData[e.target.feature.properties.id];
+        LTVis.activeTimelineChart.loadData(data);
       }
 
       areaSummaryLayers.addLayer(newLyr);
-
-
-
-      // newLyr.on("click", onclick);
-      // newLyr.on("mousemove", mousemove);
-
-      // function onclick(e) {
-      //   console.log(e);
-      // }
-
-      // function mousemove(e) {
-      //   // console.log(e);
-      // }
-
     },
 
     addCanvasLayer: function(layer) {
@@ -124,11 +126,6 @@ LTVis.Map = (function() {
 
         // Add a scale bar to the map
         L.control.scale().addTo(map);
-        
-        // Add event listeners to the polygons in the area summary polygon layer
-        // areaSummaryLayers.on("click", function(e) {
-        //   console.log(e);
-        // });
       });
     }
   };
@@ -152,7 +149,7 @@ LTVis.TimelineChart = function(divID, initialData){
   var yAxis = d3.axisLeft(yScale);
   var line = d3.line()
                .defined(function(d) { return d; })
-               .x(function(d) { return xScale(d.year); })
+               .x(function(d) { return xScale(d.date); })
                .y(function(d) { return yScale(d.value); });
   
   // Layer up all the elements of the chart. This is done now to ensure everything
@@ -185,7 +182,7 @@ LTVis.TimelineChart = function(divID, initialData){
       .style("display", "none")
       .style("white-space", "nowrap");
 
-  var bisectYear = d3.bisector(function(d) {return d.year;}).left;
+  var bisectYear = d3.bisector(function(d) {return d.date;}).left;
 
   function updateWidthHeight() {
     width = parseInt(chartDiv.style("width")) - margins.left - margins.right;
@@ -202,7 +199,7 @@ LTVis.TimelineChart = function(divID, initialData){
   }
 
   function resetScaleDomains() {
-    xScale.domain(d3.extent(data, function(d) { return d.year; }));
+    xScale.domain(d3.extent(data, function(d) { return d.date; }));
     // if there is no value, make it 0?
     yScale.domain(d3.extent(data, function(d) {
       if(chartEnabled) {
@@ -302,7 +299,7 @@ LTVis.TimelineChart = function(divID, initialData){
         x = width;
       }
       var point = getNearestDataPoint(x);
-      updateSlider({year: xScale.invert(x)});
+      updateSlider({date: xScale.invert(x)});
       updateFocus(point);
       circle.attr("r", 7)
             .style("fill", "rgb(122,209,200"); //"rgb(102,189,180"
@@ -325,7 +322,7 @@ LTVis.TimelineChart = function(divID, initialData){
     var d0 = data[i-1];
     var d1 = data[i];
     if(typeof d1 === "undefined") { return d0 };
-    var d = x0 - d0.year > d1.year - x0 ? d1 : d0;
+    var d = x0 - d0.date > d1.date - x0 ? d1 : d0;
     return d;
   }
 
@@ -341,11 +338,11 @@ LTVis.TimelineChart = function(divID, initialData){
   function updateSlider(d) {
     chart.select(".sliderHandle").select("circle")
          .attr("transform",
-               "translate(" + xScale(d.year) + "," + 
+               "translate(" + xScale(d.date) + "," + 
                                height + ")");
     chart.select(".sliderHandle").select("line")
          .attr("transform", 
-               "translate(" + xScale(d.year) + "," + 
+               "translate(" + xScale(d.date) + "," + 
                                height + ")")
          .attr("y2", -height)
          .attr("y2", function() {
@@ -359,7 +356,7 @@ LTVis.TimelineChart = function(divID, initialData){
 
   function formatData(dataToFormat) {
     dataToFormat.forEach(function(d) {
-      d.year = Number(d.year);
+      d.date = Number(d.date);
       if(typeof d.value !== "undefined" || typeof d.value !== null) {
         d.value = +d.value;
       } else {
@@ -423,12 +420,12 @@ LTVis.TimelineChart = function(divID, initialData){
     var y = typeof d.value === "undefined" ? height : yScale(d.value);
     focusPoint.select("circle.y")
       .attr("transform",
-            "translate(" + xScale(d.year) + "," +
+            "translate(" + xScale(d.date) + "," +
                            y + ")");
 
     focusPoint.select(".x")
         .attr("transform",
-              "translate(" + xScale(d.year) + "," +
+              "translate(" + xScale(d.date) + "," +
                              yScale(d.value) + ")")
                    .attr("y2", height - yScale(d.value));
 
@@ -443,14 +440,14 @@ LTVis.TimelineChart = function(divID, initialData){
       .html(function() {
         var txt = "";
         if(chartEnabled) {
-          txt += "Year: " + d.year + "<br/>"  + "Value: " + d.value;
+          txt += "date: " + d.date + "<br/>"  + "Value: " + d.value;
         } else {
-          txt += d.year;
+          txt += d.date;
         }
         return txt;
       })  
       .style("left", function() {
-        return ((xScale(d.year) + margins.left + 5) + "px");
+        return ((xScale(d.date) + margins.left + 5) + "px");
       })    
       .style("bottom", function() {
         // return ((yScale(d.value) + margins.top - 28 - 8) + "px");
@@ -490,7 +487,7 @@ LTVis.TimelineChart = function(divID, initialData){
     // remake the data line geometry
     updateLine();
     // reset the selectedDataPoint
-    updateSelectedDataPoint(getNearestDataPoint(xScale(oldSelectedDataPoint.year)));
+    updateSelectedDataPoint(getNearestDataPoint(xScale(oldSelectedDataPoint.date)));
   }
 
   var dispatch = d3.dispatch("change");
@@ -557,10 +554,15 @@ $.extend(LTVis, {
   init: function() {
     LTVis.GUI.init();
     LTVis.Map.init();
+
+    $.get("fakedata.json", null, function(data) {
+      LTVis.testData = JSON.parse(data);
+    })
+
   },
   importDemoPolygons: function() {
-    $.get("assets/geojson/wHuc12.json", null, function(data) {
-      LTVis.Map.addJSONAreaSummaryLayer(data);
+    $.get("assets/geojson/fourStates.json", null, function(data) {
+      LTVis.Map.addJSONAreaSummaryLayer(JSON.parse(data));
     });
   },
 
@@ -728,23 +730,23 @@ $(document).ready(function() {
 
   // demo data for the timeline
   var data = [
-    {year: 1970, value: 10},
-    {year: 1981, value: 20},
-    {year: 1982, value: 30},
-    {year: 1983, value: 10},
-    {year: 1984, value: -90},
-    {year: 1985, value: 80},
-    {year: 1986, value: 120},
-    {year: 1987, value: 2},
-    {year: 1988, value: 40},
-    {year: 1989, value: 50},
-    {year: 1991, value: 111},
-    {year: 1993, value: 22},
-    {year: 1994, value: 20},
-    {year: 1997, value: 33},
-    {year: 2000, value: 60},
-    {year: 2006, value: 99},
-    {year: 2011, value: 50},
+    {date: 1970, value: 10},
+    {date: 1981, value: 20},
+    {date: 1982, value: 30},
+    {date: 1983, value: 10},
+    {date: 1984, value: -90},
+    {date: 1985, value: 80},
+    {date: 1986, value: 120},
+    {date: 1987, value: 2},
+    {date: 1988, value: 40},
+    {date: 1989, value: 50},
+    {date: 1991, value: 111},
+    {date: 1993, value: 22},
+    {date: 1994, value: 20},
+    {date: 1997, value: 33},
+    {date: 2000, value: 60},
+    {date: 2006, value: 99},
+    {date: 2011, value: 50},
   ];
   
   // Demo-ing the timeline here.
@@ -753,6 +755,9 @@ $(document).ready(function() {
   timechart.on("change", function() {
     console.log(timechart.getSelectedDataPoint());
   });
+
+  LTVis.activeTimelineChart = timechart;
+  LTVis.importDemoPolygons();
 });
 
 
