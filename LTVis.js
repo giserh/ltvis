@@ -670,27 +670,30 @@ LTVis.GUI = (function() {
       $("#datasetModal").css("display", "block");
     });
 
+    $("#chartBtn").click(function() {
+      console.log("chartBtn clicked");
+      $(".menuWindow").css("display", "none"); // TODO May be obsolete soon.
+      $("#chartModal").css("display", "block");
+    }); 
+
     $("#shapeBtn").click(function() {
       console.log("shapeBtn clicked");
       $("#addPolygonsMenu").css("display", "block");
-    })
+    });
   }
 
   function initModals() {
-
     $(window).click(function(e) {
       // console.log(e);
       if($(e.target).hasClass("modal")) {
-        console.log("got it!");
         $(e.target).css("display", "none");
+        resetChartMenu();
       }
     });
-
     $(".modal-close").click(function() {
-      console.log("modal-close clicked");
-      $(".modal").css("display", "none");     
+      $(".modal").css("display", "none");
+      resetChartMenu();     
     });
-    
   }
 
   function initMenus() {
@@ -700,8 +703,8 @@ LTVis.GUI = (function() {
     });
   }
 
-  function initDatasetSelections() {
-    $(".dataSelection").click(function() {
+  function initRasterDatasetSelections() {
+    $(".rasterDatasetSelection").click(function() {
       var id = $(this).attr("id");
       console.log(id);
       // close the modal
@@ -711,12 +714,85 @@ LTVis.GUI = (function() {
     });
   }
 
+  function initSummaryPolygonSelections() {
+    $(".summaryPolygonsSelection").click(function() {
+      console.log("summary polygon selection clicked");
+    })
+  }
+
+  function hideAllChartMenuPanels() {
+    $(".chartMenuPanel").hide();
+  }
+
+  function resetChartMenu() {
+    // hide all the menus
+    hideAllChartMenuPanels();
+    // show the first one
+    $("#clickOrSummaryMenu").show();
+  }
+
+  function cancelChartSetup() {
+    $(".modal").css("display", "none"); 
+    resetChartMenu();
+  }
+
   return {
     init: function() {
       initIconButtons();
       initModals();
-      initDatasetSelections();
+      initRasterDatasetSelections();
       initMenus();
+      initSummaryPolygonSelections();
+
+      $(".chartMenuCancelButton").click(function() {
+        cancelChartSetup();
+      });
+
+      // Click Or Summary Menu
+      $("#chartByClickBtn").click(function() {
+        hideAllChartMenuPanels();
+        $("#chartByClickOptionsMenu").show();
+      });
+      $("#addSummaryAreasBtn").click(function() {
+        hideAllChartMenuPanels();
+        $("#addSummaryPolygonOptions").show();
+      });
+     
+      // Chart by click options menu
+      $("#chartByClickOptionsSubmitBtn").click(function() {
+        cancelChartSetup();
+      });
+      $("#chartByClickOptionsBackBtn").click(function() {
+        hideAllChartMenuPanels();
+        $("#clickOrSummaryMenu").show();
+      });
+
+      // Add summary polygon
+      $("#createYourOwnSummaryBtn").click(function() {
+        hideAllChartMenuPanels();
+        $("#uploadPolygonsMenu").show();
+      });
+      $("#loadPremadeSummaryBtn").click(function() {
+        hideAllChartMenuPanels();
+        $("#selectPremadePolygonsMenu").show();
+      });
+      $("#addSummaryPolygonOptionsBackBtn").click(function() {
+        hideAllChartMenuPanels();
+        $("#clickOrSummaryMenu").show();
+      });
+
+      
+      $("#uploadPolygonsSubmitBtn").click(function() {
+        cancelChartSetup();
+      });
+      $("#uploadPolygonsMenuBackBtn").click(function() {
+        hideAllChartMenuPanels();
+        $("#addSummaryPolygonOptions").show();
+      });
+      $("#selectPremadePolygonsMenuBackBtn").click(function() {
+        hideAllChartMenuPanels();
+        $("#addSummaryPolygonOptions").show();
+      });
     }
   };
 

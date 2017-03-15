@@ -104,7 +104,6 @@
 
 <!-- Data Selection Modal -->
 <div id="datasetModal" class="modal">
-
   <!-- Modal content -->
   <div class="modal-content" id="datasetModalContent">
     <!-- Modal header -->
@@ -115,21 +114,21 @@
     <!-- Modal body -->
     <div class="modal-body">
       <!-- Data selection divs, click to display data and close modal-->
-      <div class="dataSelection" id="minimum">
+      <div class="dataSelection rasterDatasetSelection" id="minimum">
         <div class="dataSelectionImage"><img src="assets/images/biomass_icon.jpg"></div>
         <div class="dataSelectionText">
           <h3>Minimum Biomass</h3>
           description goes here
         </div>
       </div>
-      <div class="dataSelection" id="maximum">
+      <div class="dataSelection rasterDatasetSelection" id="maximum">
         <div class="dataSelectionImage"><img src="assets/images/disturbance_icon.jpg"></div>
         <div class="dataSelectionText">
           <h3>Maximum Biomass</h3>
           description goes here
         </div>
       </div>
-      <div class="dataSelection" id="average">
+      <div class="dataSelection rasterDatasetSelection" id="average">
         <div class="dataSelectionImage"><img src="assets/images/disturbance_icon.jpg"></div>
         <div class="dataSelectionText">
           <h3>Average Biomass</h3>
@@ -139,6 +138,71 @@
     </div> <!-- End modal-body div -->
   </div> <!-- End modal-content div -->
 </div> <!-- End datasetModal div -->
+
+<!-- Data Selection Modal -->
+<div id="chartModal" class="modal">
+  <!-- Modal content -->
+  <div class="modal-content" id="chartModalContent">
+    <!-- Modal header -->
+    <div class="modal-header">
+      <span class="close modal-close">&times;</span> <!-- Click to close modal -->
+      <h2>Configure Chart</h2>
+    </div> <!-- End modal header -->
+    <!-- Modal body -->
+    <div class="modal-body">
+      <!-- Data selection divs, click to display data and close modal-->
+      <div id="clickOrSummaryMenu" class="chartMenuPanel">
+        <button id="chartByClickBtn">Chart By Click</button>
+        <button id="addSummaryAreasBtn">Add Summary Areas</button>
+        <button class="chartMenuCancelButton">Cancel</button>
+      </div>
+      
+      <div id="chartByClickOptionsMenu" class="chartMenuPanel">
+        Some options for charting by click!
+        <button id="chartByClickOptionsSubmitBtn">Ok</button>
+        <button class="chartMenuBackBtn" id="chartByClickOptionsBackBtn">Back</button>
+        <button class="chartMenuCancelButton">Cancel</button>
+      </div>
+
+      <div id="addSummaryPolygonOptions" class="chartMenuPanel">
+        <button id="createYourOwnSummaryBtn">Create your own</button>
+        <button id="loadPremadeSummaryBtn">Explore pre-made</button>
+        <button class="chartMenuBackBtn" id="addSummaryPolygonOptionsBackBtn">Back</button>
+        <button class="chartMenuCancelButton">Cancel</button>
+      </div>
+
+      <div id="uploadPolygonsMenu" class="chartMenuPanel">
+        <p>Upload polygons (shp, geojson, topojson)</p>
+        <p>Configure options</p>
+        <ul>
+          <li>option 1</li>
+          <li>option 2</li>
+          <li>option 3</li>
+        </ul>
+        <button class="chartMenuOkBtn" id="uploadPolygonsSubmitBtn">Ok</button>
+        <button class="chartMenuBackBtn" id="uploadPolygonsMenuBackBtn">Back</button>
+        <button class="chartMenuCancelButton">Cancel</button>
+      </div>
+
+      <div id="selectPremadePolygonsMenu" class="chartMenuPanel">
+        <p>Select one of these!</p>
+
+        <div class="dataSelection summaryPolygonsSelection" id="testPolygons">
+          <div class="dataSelectionImage"><img src="assets/images/testPolygons_4states.jpg"></div>
+          <div class="dataSelectionText">
+            <h3>Test Polygons</h3>
+            These are just 4 states with fake data that are here for testing purposes.
+          </div>
+        </div>
+
+        <button class="chartMenuBackBtn" id="selectPremadePolygonsMenuBackBtn">Back</button>
+        <button class="chartMenuCancelButton">Cancel</button>
+      </div>
+
+    </div> <!-- End modal-body div -->
+  </div> <!-- End modal-content div -->
+</div> <!-- End datasetModal div -->
+
 
 
 </body>
