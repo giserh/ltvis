@@ -7,6 +7,16 @@ var LTVis = {version: "testerville"};
 // Expose the app in the global scope
 window.LTVis = LTVis;
 
+LTVis.util = {
+  // Checks if d is a string before calling JSON.parse()
+  // If it isn't, it is assumed to be already parsed JSON.
+  // Useful when switching between working on the server vs locally.
+  parseJSON: function(d) {
+    // return typeof d === "object" ? d : JSON.parse(d);
+    return typeof d === "string" ? JSON.parse(d) : d;
+  }
+}
+
 // The Map module configures the map, manages map layers, and has functions 
 // for adding, removing, and styling layers. 
 LTVis.Map = (function() {
@@ -556,13 +566,13 @@ $.extend(LTVis, {
     LTVis.Map.init();
 
     $.get("fakedata.json", null, function(data) {
-      LTVis.testData = JSON.parse(data);
+      LTVis.testData = LTVis.util.parseJSON(data);
     })
 
   },
   importDemoPolygons: function() {
     $.get("assets/geojson/fourStates.json", null, function(data) {
-      LTVis.Map.addJSONAreaSummaryLayer(JSON.parse(data));
+      LTVis.Map.addJSONAreaSummaryLayer(LTVis.util.parseJSON(data));
     });
   },
 
@@ -717,6 +727,11 @@ LTVis.GUI = (function() {
   function initSummaryPolygonSelections() {
     $(".summaryPolygonsSelection").click(function() {
       console.log("summary polygon selection clicked");
+
+      // Load them summary polygons
+      LTVis.importDemoPolygons();
+      $(".modal").css("display", "none"); 
+      resetChartMenu();
     })
   }
 
@@ -833,7 +848,7 @@ $(document).ready(function() {
   });
 
   LTVis.activeTimelineChart = timechart;
-  LTVis.importDemoPolygons();
+  // LTVis.importDemoPolygons();
 });
 
 
