@@ -168,7 +168,7 @@ LTVis.TimelineChart = function(divID, initialData){
                .x(function(d) { return xScale(d.date); })
                .y(function(d) { return yScale(d.value); });
   
-  // Layer up all the elements of the chart. This is done now to ensure everything
+  // Layer up all the visual elements of the chart. This is done now to ensure everything
   // is in the proper order. 
   var svg = chartDiv.append("svg");
   var chart = svg.append("g")
@@ -559,7 +559,6 @@ LTVis.TimelineChart = function(divID, initialData){
       lineSVG.attr("opacity", k);
     }
   };
-
 };
 
 // Start main app functions instide the LTVis namespace. 
@@ -570,11 +569,6 @@ $.extend(LTVis, {
   init: function() {
     LTVis.GUI.init();
     LTVis.Map.init();
-
-    // $.get("fakedata.json", null, function(data) {
-    //   LTVis.activeAreaSummaryData = LTVis.util.parseJSON(data);
-    // })
-
   },
 
   loadSummaryData: function(pathToGeoJSON, pathToData, config) {
@@ -583,18 +577,42 @@ $.extend(LTVis, {
       LTVis.Map.addJSONAreaSummaryLayer(LTVis.util.parseJSON(geoJSON));
     });
 
-    $.get(pathToData, null, function(data) {
-      LTVis.activeAreaSummaryData = LTVis.util.parseJSON(data);
+    // $.get(pathToData, null, function(data) {
+    //   LTVis.activeAreaSummaryData = LTVis.util.parseJSON(data);
+    //   console.log(LTVis.activeAreaSummaryData);
+    // });
+    d3.csv(pathToData, function(d) {
+      LTVis.activeAreaSummaryData = LTVis.formatImportedCSVForChart(d);
     });
   },
 
-  importDemoPolygons: function() {
-    // $.get("assets/geojson/fourStates.json", null, function(data) {
-    //   LTVis.Map.addJSONAreaSummaryLayer(LTVis.util.parseJSON(data));
-    // });
-    var pathToGeoJSON = "assets/geojson/meanBiomass_proj.json";
-    var pathToData = "fakedata.json";
-    LTVis.loadSummaryData(pathToGeoJSON,pathToData);
+  formatImportedCSVForChart: function(d) {
+
+    var fd = {};
+    console.log(d);
+    var dates = [];
+
+    for(var i = 0; i < d.columns.length; i += 1) {
+      if(d.columns[i] !== "id") {
+        dates.push(d.columns[i]);
+      }
+    }
+
+    console.log(dates);
+
+    for (var i=0; i < d.length; i += 1) {
+      var id = d[i].id;
+      fd[id] = [];
+      for(var k = 0; k < dates.length; k += 1) {
+        var o = {};
+        o.date = dates[k];
+        o.value = d[i][dates[k]];
+        fd[id].push(o);
+      }
+    }
+
+    console.log(fd);
+    return fd;
   },
 
   loadDemoShapefile: function() {
@@ -772,12 +790,12 @@ LTVis.GUI = (function() {
       console.log("summary polygon selection clicked");
 
       // Load them summary polygons
-      // LTVis.importDemoPolygons();
       var root = "data/premadeAreaSummaries/";
       var id = $(this).attr("id");
       var config;
       var pathToGeoJSON = root + id + "_geom.json";
-      var pathToData =    root + id + "_data.json";
+      // var pathToData =    root + id + "_data.json";
+      var pathToData =    root + id + "_data.csv";
 
 
       LTVis.loadSummaryData(pathToGeoJSON,pathToData);
@@ -868,9 +886,12 @@ LTVis.GUI = (function() {
 
 })(); // END the app. No more internal app code after this. 
 
+var d3Map;
 // Start the app!
 $(document).ready(function() {
   LTVis.init();
+
+  // Everything from this point is experimental development code. 
 
   // demo data for the timeline
   var data = [
@@ -892,10 +913,6 @@ $(document).ready(function() {
     {date: 2006, value: 99},
     {date: 2011, value: 50},
   ];
-  
-  var otherData = {
-
-  };
 
   // Demo-ing the timeline here.
   // TODO move this code into the GUI module when it's really time to add this.
@@ -905,7 +922,14 @@ $(document).ready(function() {
   });
 
   LTVis.activeTimelineChart = timechart;
-  // LTVis.importDemoPolygons();
+
+  // var csvpath = "data/premadeAreaSummaries/fourStates_data.csv";
+  // d3.csv(csvpath, function(d){
+  //   console.log(d);
+
+  //   d3Map = d3.map(d);
+  //   console.log(d3Map);
+  // });
 });
 
 
