@@ -53,11 +53,15 @@ LTVis.Map = (function() {
         })
       });
 
+      var bounds = newLyr.getBounds();
+      map.fitBounds(bounds);
+
       function onEachFeature(feature, layer) {
         layer.on({
           mouseover: mouseover,
           mouseout: mouseout,
-          click: click
+          // click: click,
+          mousedown: mousedown
         })
       }
 
@@ -66,7 +70,6 @@ LTVis.Map = (function() {
         layer.setStyle({
           weight: 3
         })
-        
       }
 
       function mouseout(e) {
@@ -76,8 +79,10 @@ LTVis.Map = (function() {
         })
       }
 
-      function click(e) {
-        // console.log(e.target);
+      function mousedown(e) {
+        // change the color of all the polygons back to black
+
+        newLyr.setStyle({color: "black"});
         var layer = e.target;
         layer.setStyle({
           color: "red"
@@ -86,8 +91,9 @@ LTVis.Map = (function() {
           layer.bringToFront();
         }
         console.log(e.target.feature.properties.id);
-        console.log(LTVis.testData[e.target.feature.properties.id]);
-        var data = LTVis.testData[e.target.feature.properties.id];
+        console.log(LTVis.activeAreaSummaryData[e.target.feature.properties.id]);
+        // FIXME make a function in LTVis that does the next two things
+        var data = LTVis.activeAreaSummaryData[e.target.feature.properties.id];
         LTVis.activeTimelineChart.loadData(data);
       }
 
@@ -565,15 +571,30 @@ $.extend(LTVis, {
     LTVis.GUI.init();
     LTVis.Map.init();
 
-    $.get("fakedata.json", null, function(data) {
-      LTVis.testData = LTVis.util.parseJSON(data);
-    })
+    // $.get("fakedata.json", null, function(data) {
+    //   LTVis.activeAreaSummaryData = LTVis.util.parseJSON(data);
+    // })
 
   },
-  importDemoPolygons: function() {
-    $.get("assets/geojson/fourStates.json", null, function(data) {
-      LTVis.Map.addJSONAreaSummaryLayer(LTVis.util.parseJSON(data));
+
+  loadSummaryData: function(pathToGeoJSON, pathToData, config) {
+    // load the polygons to the map
+    $.get(pathToGeoJSON, null, function(geoJSON) {
+      LTVis.Map.addJSONAreaSummaryLayer(LTVis.util.parseJSON(geoJSON));
     });
+
+    $.get(pathToData, null, function(data) {
+      LTVis.activeAreaSummaryData = LTVis.util.parseJSON(data);
+    });
+  },
+
+  importDemoPolygons: function() {
+    // $.get("assets/geojson/fourStates.json", null, function(data) {
+    //   LTVis.Map.addJSONAreaSummaryLayer(LTVis.util.parseJSON(data));
+    // });
+    var pathToGeoJSON = "assets/geojson/meanBiomass_proj.json";
+    var pathToData = "fakedata.json";
+    LTVis.loadSummaryData(pathToGeoJSON,pathToData);
   },
 
   loadDemoShapefile: function() {
@@ -661,6 +682,28 @@ $.extend(LTVis, {
 
   removeCanvasLayer: function() {
     LTVis.Map.removeCanvasLayer();
+  },
+
+  importTestCSV: function() {
+
+    var url = "data/premadeAreaSummaries/meanBioHexes/meanBioHexes_data.csv";
+
+    function row(d) {
+      var k,
+          dates = [];
+
+      for (k in d) {
+        if(d.hasOwnProperty(k)){
+          
+          dates.push()
+        }
+      }
+    }
+
+    d3.csv(url, row, function(data) {
+      var yes = data;
+      console.log(yes);
+    });
   }
 }); // END $.extend(LTVis, {...})
 
@@ -729,7 +772,17 @@ LTVis.GUI = (function() {
       console.log("summary polygon selection clicked");
 
       // Load them summary polygons
-      LTVis.importDemoPolygons();
+      // LTVis.importDemoPolygons();
+      var root = "data/premadeAreaSummaries/";
+      var id = $(this).attr("id");
+      var config;
+      var pathToGeoJSON = root + id + "_geom.json";
+      var pathToData =    root + id + "_data.json";
+
+
+      LTVis.loadSummaryData(pathToGeoJSON,pathToData);
+
+
       $(".modal").css("display", "none"); 
       resetChartMenu();
     })
@@ -840,6 +893,10 @@ $(document).ready(function() {
     {date: 2011, value: 50},
   ];
   
+  var otherData = {
+
+  };
+
   // Demo-ing the timeline here.
   // TODO move this code into the GUI module when it's really time to add this.
   var timechart = new LTVis.TimelineChart("timeRangeContainer", data);
