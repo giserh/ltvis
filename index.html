@@ -21,6 +21,7 @@
   <script src="https://d3js.org/d3.v4.min.js"></script>
   <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/js-yaml/3.4.3/js-yaml.min.js"></script>
+  
 
   <!-- Scripts for loading shapefiles -->
   <script src="lib/proj4/proj4.js"></script>
@@ -35,7 +36,7 @@
 
 
   
-  <script src="LTVis.js"></script>
+  
   
   
 </head>
@@ -207,13 +208,14 @@
         <button class="chartMenuCancelButton">Cancel</button>
       </div>
 
-
-
     </div> <!-- End modal-body div -->
   </div> <!-- End modal-content div -->
 </div> <!-- End datasetModal div -->
 
-
+<!-- Load more scripts. Maybe these should live in the head? -->
+<script src="LTVis.js"></script>
+<script src="TimelineChart.js"></script>
+<script src="main.js"></script>
 
 </body>
   
