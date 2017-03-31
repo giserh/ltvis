@@ -14,7 +14,19 @@ LTVis.util = {
   parseJSON: function(d) {
     // return typeof d === "object" ? d : JSON.parse(d);
     return typeof d === "string" ? JSON.parse(d) : d;
-  }
+  },
+  formatDate: function(d) {
+    var year = d.getFullYear();
+    var day = d.getDate();
+    var month = d.getMonth() + 1;
+    if(String(month).length < 2) {
+      month = "0" + month;
+    }
+    if(String(day).length < 2) {
+      day = "0" + day;
+    }
+    return [year,month,day].join("-");
+  },
 }
 
 // The Map module configures the map, manages map layers, and has functions 
@@ -25,6 +37,59 @@ LTVis.Map = (function() {
   var areaSummaryLayers;
   var canvasLayer = null;
 
+  function createCanvasLayer(url) {
+    var CanvasLayer = L.GridLayer.extend({
+      createTile: function(coords, done){
+        var error;
+        // create a <canvas> element for drawing
+        var tile = L.DomUtil.create('canvas', 'leaflet-tile');
+        // setup tile width and height according to the options
+        var size = this.getTileSize();
+
+        tile.width = size.x;
+        tile.height = size.y;
+
+        var ctx = tile.getContext('2d');
+        var imageObj = new Image();
+        var zxy = coords.z + "/" + coords.x + "/" + coords.y;
+
+        // imageObj.src = [url, zxy + ".png"].join("/");
+        imageObj.src = url + "/" + zxy + ".png";
+        imageObj.onload = function() {
+
+          // Create a temp canvas.
+          var tempCanvas = document.createElement('canvas');
+          // Get the 2d context of the temp canvas
+          var tempContext = tempCanvas.getContext("2d");
+          // set the height and width of the temp canvas
+          tempCanvas.width = tile.width;
+          tempCanvas.height = tile.height;
+          // Draw this image onto the temp context
+          tempContext.drawImage(this, 0, 0);
+
+          // Get the data of the image drawn on the temp context
+          var tempImage = tempContext.getImageData(0,0,tile.width, tile.height);
+          var tempData = tempImage.data;
+
+          //loop over every 4th value of the tempData
+          for (var i = 0; i < tempData.length; i +=4) {
+            // change the color to something else!
+            var c = LTVis.getRGBAColorFromGrayscale(tempData[i]);
+            tempData[i] = c[0];
+            tempData[i + 1] = c[1];
+            tempData[i + 2] = c[2];
+            // tempData[i + 3] = c[3]; 
+          }
+          // draw the altered image to the tile 2d context!
+          ctx.putImageData(tempImage, 0, 0);
+          done(error, tile);
+        }
+        return tile;
+      }
+    });
+    return new CanvasLayer();
+  }
+
   return {
 
     getAreaSummaryLayers: function() {
@@ -33,6 +98,7 @@ LTVis.Map = (function() {
 
     addJSONAreaSummaryLayer: function(geoJSON) {
       areaSummaryLayers.clearLayers();
+      console.log(geoJSON);
 
       var newLyr = L.geoJSON(geoJSON, {
         style: function() {
@@ -55,6 +121,7 @@ LTVis.Map = (function() {
 
       var bounds = newLyr.getBounds();
       map.fitBounds(bounds);
+      areaSummaryLayers.addLayer(newLyr);
 
       function onEachFeature(feature, layer) {
         layer.on({
@@ -79,9 +146,24 @@ LTVis.Map = (function() {
         })
       }
 
+      // function mousedown_old(e) {
+      //   // change the color of all the polygons back to black
+      //   newLyr.setStyle({color: "black"});
+      //   var layer = e.target;
+      //   layer.setStyle({
+      //     color: "red"
+      //   })
+      //   if (!L.Browser.ie && !L.Browser.opera) {
+      //     layer.bringToFront();
+      //   }
+      //   console.log(e.target.feature.properties.id);
+      //   console.log(LTVis.activeAreaSummaryData[e.target.feature.properties.id]);
+      //   // FIXME make a function in LTVis that does the next two things
+      //   var data = LTVis.activeAreaSummaryData[e.target.feature.properties.id];
+      //   LTVis.activeTimelineChart.loadData(data);
+      // }
       function mousedown(e) {
-        // change the color of all the polygons back to black
-
+        // Style the clicked feature
         newLyr.setStyle({color: "black"});
         var layer = e.target;
         layer.setStyle({
@@ -90,14 +172,11 @@ LTVis.Map = (function() {
         if (!L.Browser.ie && !L.Browser.opera) {
           layer.bringToFront();
         }
-        console.log(e.target.feature.properties.id);
-        console.log(LTVis.activeAreaSummaryData[e.target.feature.properties.id]);
-        // FIXME make a function in LTVis that does the next two things
-        var data = LTVis.activeAreaSummaryData[e.target.feature.properties.id];
-        LTVis.activeTimelineChart.loadData(data);
+        // Display the summary data for this feature in the graph
+        LTVis.displayFeatureSummaryData(e.target.feature);
       }
 
-      areaSummaryLayers.addLayer(newLyr);
+      
     },
 
     addCanvasLayer: function(layer) {
@@ -106,6 +185,12 @@ LTVis.Map = (function() {
       }
       canvasLayer = layer;
       layer.addTo(map);
+    },
+
+    loadDatasetTiles: function(url) {
+      // Make a canvas layer
+      var lyr = createCanvasLayer(url);
+      this.addCanvasLayer(lyr);
     },
 
     removeCanvasLayer: function() {
@@ -117,7 +202,7 @@ LTVis.Map = (function() {
       layer.addTo(map);
     },
 
-    init: function() {
+    init: function(callback) {
       // Load the config file for the map
       $.get('configFiles/mapConfig.yaml', null, function(data) {
         var mapConfig = jsyaml.load(data);
@@ -142,6 +227,7 @@ LTVis.Map = (function() {
 
         // Add a scale bar to the map
         L.control.scale().addTo(map);
+        callback(true);
       });
     }
   };
@@ -156,36 +242,11 @@ LTVis.Map = (function() {
 $.extend(LTVis, {
   init: function() {
     LTVis.GUI.init();
-    LTVis.Map.init();
-
-    // Demo-ing the timeline here.
-    // TODO move this code to a better place later.
-    var data = [
-      {date: 1970, value: 10},
-      {date: 1981, value: 20},
-      {date: 1982, value: 30},
-      {date: 1983, value: 10},
-      {date: 1984, value: -90},
-      {date: 1985, value: 80},
-      {date: 1986, value: 120},
-      {date: 1987, value: 2},
-      {date: 1988, value: 40},
-      {date: 1989, value: 50},
-      {date: 1991, value: 111},
-      {date: 1993, value: 22},
-      {date: 1994, value: 20},
-      {date: 1997, value: 33},
-      {date: 2000, value: 60},
-      {date: 2006, value: 99},
-      {date: 2011, value: 50},
-    ];
-
-    var timechart = new LTVis.TimelineChart("timeRangeContainer", data);
-    timechart.on("change", function() {
-      console.log(timechart.getSelectedDataPoint());
-    });
-
-    LTVis.activeTimelineChart = timechart;
+    LTVis.Map.init(function(success) {
+       // load the starting dataset
+      var sliderDate = LTVis.GUI.getSelectedTimelineDate();
+      LTVis.loadDataset("mr224_biomass", LTVis.util.formatDate(sliderDate));
+    });   
   },
 
   loadSummaryData: function(pathToGeoJSON, pathToData, config) {
@@ -198,15 +259,17 @@ $.extend(LTVis, {
     //   LTVis.activeAreaSummaryData = LTVis.util.parseJSON(data);
     //   console.log(LTVis.activeAreaSummaryData);
     // });
-    d3.csv(pathToData, function(d) {
-      LTVis.activeAreaSummaryData = LTVis.formatImportedCSVForChart(d);
-    });
+    // d3.csv(pathToData, function(d) {
+    //   LTVis.activeAreaSummaryData = LTVis.formatImportedCSVForChart(d);
+    // });
   },
 
+  // This may become obsolete if all summary data is requested dynamically from the server.
+  // It will be useful if summary data is cached as csv files.
   formatImportedCSVForChart: function(d) {
 
     var fd = {};
-    console.log(d);
+    // console.log(d);
     var dates = [];
 
     for(var i = 0; i < d.columns.length; i += 1) {
@@ -214,8 +277,6 @@ $.extend(LTVis, {
         dates.push(d.columns[i]);
       }
     }
-
-    console.log(dates);
 
     for (var i=0; i < d.length; i += 1) {
       var id = d[i].id;
@@ -227,8 +288,6 @@ $.extend(LTVis, {
         fd[id].push(o);
       }
     }
-
-    console.log(fd);
     return fd;
   },
 
@@ -262,94 +321,88 @@ $.extend(LTVis, {
     return [c.r, c.g, c.b, c.opacity];
   },
 
-  // FIXME: This needs to be reviewed and updated to offer more control.
-  CanvasLayer: L.GridLayer.extend({
-    createTile: function(coords, done){
-      var error;
-      // create a <canvas> element for drawing
-      var tile = L.DomUtil.create('canvas', 'leaflet-tile');
-      // setup tile width and height according to the options
-      var size = this.getTileSize();
-      tile.width = size.x;
-      tile.height = size.y;
-
-      var ctx = tile.getContext('2d');
-      var imageObj = new Image();
-      var zxy = coords.z + "/" + coords.x + "/" + coords.y;
-      imageObj.src = 'http://ltweb.ceoas.oregonstate.edu/mapping/maps/' + LTVis.activeDataLayer + '/tiles/' + zxy + '.png';
-
-      imageObj.onload = function() {
-
-        // Create a temp canvas.
-        var tempCanvas = document.createElement('canvas');
-        // Get the 2d context of the temp canvas
-        var tempContext = tempCanvas.getContext("2d");
-        // set the height and width of the temp canvas
-        tempCanvas.width = tile.width;
-        tempCanvas.height = tile.height;
-        // Draw this image onto the temp context
-        tempContext.drawImage(this, 0, 0);
-
-        // Get the data of the image drawn on the temp context
-        var tempImage = tempContext.getImageData(0,0,tile.width, tile.height);
-        var tempData = tempImage.data;
-
-        //loop over every 4th value of the tempData
-        for (var i = 0; i < tempData.length; i +=4) {
-          // change the color to something else!
-          var c = LTVis.getRGBAColorFromGrayscale(tempData[i]);
-          tempData[i] = c[0];
-          tempData[i + 1] = c[1];
-          tempData[i + 2] = c[2];
-          // tempData[i + 3] = c[3]; 
-        }
-        // draw the altered image to the tile 2d context!
-        ctx.putImageData(tempImage, 0, 0);
-        done(error, tile);
-      }
-      return tile;
-    }
-  }),
-
-  // TODO: This is all hardcoded stuff put here for demonstration purposes.
-  // Needs to be incorporated into a system that allows more control. 
-  addCanvasLayer: function(layerID) {
-    LTVis.ramp = "BrBG";
-    LTVis.activeDataLayer = layerID;
-    var lyr = new LTVis.CanvasLayer();
-    LTVis.Map.addCanvasLayer(lyr);
-  },
-
   removeCanvasLayer: function() {
     LTVis.Map.removeCanvasLayer();
   },
 
-  loadDataset: function(datasetID) {
-    // Load the correct tiles, which are determined by the id and date of the 
-    // slider as of before this was called. 
-
-    // TODO: Right now this just loads an existing tileset sitting in a folder.
-    // Later, this will need to make a request to Islay for specific tiles.
-    // ALSO, tiles cannot be styled unless they come from the same server 
-    // as this website. So we may need to have pre-styled tiles, in which case
-    // we don't need to addCanvasLayer, but rather just request tiles from 
-    // the server as normally done with leaflet. 
-    LTVis.addCanvasLayer(datasetID);
 
 
-    // Style the tiles according to the default styling specified by a metadata
-    // file.
+  loadDataset: function(datasetID, dateString) {
+    // TODO get the available dates for this dataset and pass them to the slider
+    // TODO Invent some awesome system for determining the color ramp
+    LTVis.ramp = "BrBG";
+    LTVis.activeDataLayer = datasetID;
+    var baseURL = "http://ltweb.ceoas.oregonstate.edu/mapping/tiles";
+    // TODO get the available properties from somewhere
+    var property = "tc_band5_k5_bph_ge_3_crm"; // Should come from ui settings.
+    var band;
+    // Set the band to the passed in dateString if there is one. 
+    // Though really it should come from the slider.
+    // ...Except the slider might be set to an invalid date.
+    // TODO Think about this.
+    if(typeof dateString !== "undefined") {
+      band = dateString;
+    } else {
+      band = "2005-07-01";
+    }
+    console.log(dateString);
+    var url = [baseURL, datasetID, property, band].join("/");
+    LTVis.Map.loadDatasetTiles(url);
+  },
 
-    // initialize the timeline slider with new dates according to the metadata
-    // for this dataset.
-    // TODO: For now there is no metadata for the dataset. Indeed, there are no 
-    // proper datasets. So some metadata is invented here.
-    var dates = [];
-    for (var i = 1980; i <= 2020; i += 1) {
-      dates.push(i);
+  requestFeatureTimeSeriesData: function(feature, request, callback) {
+    $.ajax({
+      url: '/mapping/requestData/',
+      method: 'GET',
+      data: request,
+      error: function(R, msg, st) {
+         // $("#message").html('An error occurred in the web application.<br>'+
+         //  R.responseText+'<br>'+msg+'<br>'+st +"<br>"+JSON.stringify(request));
+        console.log('An error occurred in the web application.<br>'+
+          R.responseText+'<br>'+msg+'<br>'+st +"<br>"+JSON.stringify(request));
+        callback(false);
+      },
+      success: function(R) {
+        // $("#message").html("<pre>"+R+"</pre>");
+        // console.log(LTVis.util.parseJSON(R));
+        callback(LTVis.util.parseJSON(R));
+      }
+    });
+  },
+
+  displayFeatureSummaryData: function(feature) {
+    // TODO This stuff needs to come from user-determined settings somewhere.
+    var request = {
+      'req-op': 'queryregion',
+      'dataset': 'mr224_biomass',
+      'property': 'tc_nbr_k1_bph_ge_3_crm',
+      'reducer': 'mean,std,median,min,max',
+      'region': JSON.stringify(feature.geometry),
+      'date': JSON.stringify(['2000-01-01', '2010-12-31']),
+      'format':'json' // choice of 'json' or 'yaml'
     }
 
+    LTVis.requestFeatureTimeSeriesData(feature, request, function(d) {
+      console.log(d);
+      // d is the time series data from the server!
+      // Pass it into the graph here!
+      LTVis.GUI.removeLinesFromTimelineChart();
+      if(d) {
+        LTVis.GUI.addLineToTimelineChart(d.mean);
+      }      
+    });
+  },
+
+  // This gets called by the GUI module when the timeline slider is moved.
+  timelineDateChanged: function(newDate) {
+    // OK, do some stuff. Need to load an entirely new layer with a new date.
+    // well, first parse the date.
+
+    // Load a new dataset, but with the new date.
+    LTVis.loadDataset(LTVis.activeDataLayer, LTVis.util.formatDate(newDate));
   }
+
+
 }); // END $.extend(LTVis, {...})
 
 
@@ -361,6 +414,8 @@ $.extend(LTVis, {
 // modules.
 LTVis.GUI = (function() {
 
+  var timelineChart;
+
   function initIconButtons() {
     $("#layerBtn").click(function() {
       console.log("layerBtn clicked");
@@ -369,7 +424,7 @@ LTVis.GUI = (function() {
     });
 
     $("#chartBtn").click(function() {
-      console.log("chartBtn clicked");
+      // console.log("chartBtn clicked");
       $(".menuWindow").css("display", "none"); // TODO May be obsolete soon.
       $("#chartModal").css("display", "block");
     }); 
@@ -414,7 +469,7 @@ LTVis.GUI = (function() {
 
   function initSummaryPolygonSelections() {
     $(".summaryPolygonsSelection").click(function() {
-      console.log("summary polygon selection clicked");
+      // console.log("summary polygon selection clicked");
 
       // Load them summary polygons
       var root = "data/premadeAreaSummaries/";
@@ -449,6 +504,30 @@ LTVis.GUI = (function() {
     resetChartMenu();
   }
 
+  function initTimelineChart() {
+    // Because it must have dates. Maybe there is another way.
+    var fakeDates = [
+      "2000-06-01",
+      "2001-06-01",
+      "2002-06-01",
+      "2003-06-01",
+      "2004-06-01",
+      "2005-06-01",
+      "2006-06-01",
+      "2007-06-01",
+      "2008-06-01",
+      "2009-06-01",
+      "2010-06-01"
+    ];
+    timelineChart = new LTVis.TimelineChart("timeRangeContainer", fakeDates);
+    timelineChart.on("change", function() {
+      // console.log(timelineChart.getSelectedDate());
+      LTVis.timelineDateChanged(timelineChart.getSelectedDate());
+    });
+    // Ok, now hide it. because it can't be visible until later. 
+    // $("#timeRangeContainer").hide();
+  }
+
   return {
     init: function() {
       initIconButtons();
@@ -456,6 +535,7 @@ LTVis.GUI = (function() {
       initRasterDatasetSelections();
       initMenus();
       initSummaryPolygonSelections();
+      initTimelineChart();
 
       // initialize a timeline slider
 
@@ -510,7 +590,17 @@ LTVis.GUI = (function() {
       });
 
       // Load the starting dataset. 
+    },
+    addLineToTimelineChart: function(lineData) {
+      timelineChart.addLine(lineData);
+    },
+    removeLinesFromTimelineChart: function() {
+      timelineChart.removeLines();
+    },
+    getSelectedTimelineDate: function() {
+      return timelineChart.getSelectedDate();
     }
+
   };
 
 })(); // END LTVis.GUI module.

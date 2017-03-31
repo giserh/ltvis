@@ -8,8 +8,8 @@ map:
     minZoom: 0
     maxZoom: 14
   initialView:
-    center: [45.0, -122.40]
-    zoom: 6
+    center: [43.0, -122.40]
+    zoom: 7
 
 referenceLayer:
   url: mapbox.streets

@@ -1,79 +1,215 @@
-// TODO: Lots.
-// Dates are currently just years, yyyy. Could be updates to dd/mm/yyyy
-LTVis.TimelineChart = function(divID, initialData){
+LTVis.TimelineChart = function(divID, inputSnappingDates){
   "use strict";
-
-  var chartEnabled = true;
-  var data = initialData;
   var chartDiv = d3.select("#" + divID);
-  var margins = {top: 10, right: 20, bottom: 25, left: 35};
+  var margins = {top: 10, right: 20, bottom: 25, left: 30};
   var width;
   var height;
-  var selectedDataPoint = data[(Math.round((data.length - 1) / 2))]; // default selected point
-  var xScale = d3.scaleLinear();
-  var yScale = d3.scaleLinear();
-  var xAxis = d3.axisBottom(xScale).tickFormat(d3.format("d")); // tickFormat is removing commas
-  var yAxis = d3.axisLeft(yScale);
+
+  var snappingDateStrings = inputSnappingDates; // might not ever need the strings
+  var snappingDates = [];
+  
+
+  var parseTime = d3.timeParse("%Y-%m-%d");
+  snappingDateStrings.forEach(function(d) {
+    snappingDates.push(parseTime(d));
+  });
+
+  // Select a default snapping date. Maybe the middle one for now.
+  var selectedSnappingDate = snappingDates[(Math.round((snappingDates.length - 1) / 2))];
+
+  var lineData = [];
   var line = d3.line()
                .defined(function(d) { return d; })
                .x(function(d) { return xScale(d.date); })
                .y(function(d) { return yScale(d.value); });
-  
-  // Layer up all the visual elements of the chart. This is done now to ensure everything
-  // is in the proper order. 
+
+  var xScale = d3.scaleTime();
+  var yScale = d3.scaleLinear();
+  var xAxis = d3.axisBottom(xScale);
+  var yAxis = d3.axisLeft(yScale);
+
+  // Append an svg and layers for the svg
   var svg = chartDiv.append("svg");
   var chart = svg.append("g")
-               .attr("transform", "translate(" + margins.left + "," + margins.top + ")")
-               .attr("class", "timelineChart");
-  
+        .attr("transform", "translate(" + margins.left + "," + margins.top + ")")
+        .attr("class", "timelineChart");
   var xAxisSVG = chart.append("g").attr("class", "x axis");
+  var snappingTicks = chart.append("g").attr("class", "snappingTicks");
   var yAxisSVG = chart.append("g").attr("class", "y axis");
-  var lineSVG = chart.append("path")
-      .data([data])
-      .attr("class", "line")
-      .attr("stroke", "green")
-      .attr("stroke-width", 2)
-      .attr("fill", "none");
-  var focusPoint = chart.append("g")
-      .style("display", "none")
-      .attr("class", "focusPoint");
-  var mouseCatcher = chart.append("rect").attr("class", "mouseCatcher")
-      .style("fill", "none")
-      .style("pointer-events", "all");
-  var sliderHandle = chart.append("g").attr("class", "sliderHandle")
-      .style("pointer-events", "all");
+  var linesSVG = chart.append("g").attr("class", "linesSVG");
+  var ghostHandle = chart.append("g")
+        .attr("class", "ghostHandle")
+        .style("pointer-events", "none");
+  var sliderHandle = chart.append("g")
+        .attr("class", "sliderHandle")
+        .style("pointer-events", "all");
 
-  // Define the div for the tooltip
-  var tooltip = d3.select("#" + divID).append("div") 
-      .attr("class", "timelineChartTooltip")       
-      .style("display", "none")
-      .style("white-space", "nowrap");
+  function configSlider() {
+    
+    var handleLine = sliderHandle.append("line")
+          .style("stroke", "rgb(150,150,150")
+          .style("stroke-width", "1px")
+          .attr("stroke-dasharray","5, 5");
 
-  var bisectYear = d3.bisector(function(d) {return d.date;}).left;
+    var circle = sliderHandle.append("circle")
+          .style("stroke", "none")
+          .style("fill", "rgb(102,189,180)")
+          .attr("r", 6);
+
+    var ghostCircle = ghostHandle.append("circle")
+          .style("stroke", "none")
+          .style("fill", "rgb(150,150,150)")
+          .attr("r", 4)
+          .style("display", "none");
+
+    sliderHandle
+      .on("mouseover", function() {
+        // console.log("slider handle mouseover");
+      });
+
+    sliderHandle.call(d3.drag()
+        // .on("start.interrupt", function() { console.log("Interrupted?"); })
+        .on("start drag", drag)
+        .on("end", dragEnd));
+
+    function drag() {
+
+      // Get the location of the mouse
+      var x = d3.mouse(this)[0];
+
+      // Constrain the slider location to inside the visible part of the chart
+      if(x < 0) {
+        x = 0;
+      } else if (x > width) {
+        x = width;
+      }
+
+      // Move the slider to the mouse location
+      updateSlider(xScale.invert(x));
+
+      // Change the style to dragging style
+      circle.attr("r", 7)
+            .style("fill", "rgb(80,160,155"); //"rgb(102,189,180"
+
+
+      // show the ghostCircle!
+      ghostCircle.style("display", null);
+      // put the ghostCircle somewhere! The nearest snapping date!
+      var nearestSnappingDate = getNearestSnappingDate(x);
+      ghostCircle.attr("transform",
+                       "translate(" + xScale(nearestSnappingDate) + "," + height + ")");
+    }
+    function dragEnd() {
+
+      // find the snapping date closest to the mouse location
+      var nearestSnappingDate = getNearestSnappingDate(d3.mouse(this)[0]);
+
+      setSelectedSnappingDate(nearestSnappingDate);
+
+      // Change the style back to not-dragging style
+      circle.attr("r", 6)
+            .style("fill", "rgb(102,189,180");
+      ghostCircle.style("display", "none");
+    }
+  }
+
+  var bisectDate = d3.bisector(function(d) {return d;}).left;
+
+  function getNearestSnappingDate(mouseEventX) {
+    var x0 = xScale.invert(mouseEventX);
+    var i = bisectDate(snappingDates, x0, 1);
+    var d0 = snappingDates[i-1];
+    var d1 = snappingDates[i];
+    if(typeof d1 === "undefined") { return d0 };
+    var d = x0 - d0 > d1 - x0 ? d1 : d0;
+    return d;
+  }
+
+  function setSelectedSnappingDate(d) {
+    // only do something if d isn't already the selected snapping date
+    if (d !== selectedSnappingDate) {
+      selectedSnappingDate = d;
+      dispatch.call("change");
+    }
+    updateSlider(d);
+  }
+
+  // d is a date object. Moves the slider handle to that date on the x axis,
+  // and adjusts the height of the line sticking out of the dot there.
+  function updateSlider(d) {
+    // TODO if outside range, move to nearest available
+    sliderHandle.select("circle")
+      .attr("transform", 
+            "translate(" + xScale(d) + "," + height + ")");
+    sliderHandle.select("line")
+      .attr("transform", 
+            "translate(" + xScale(d) + "," + height + ")")
+      .attr("y2", -height)
+      .attr("y2", function() {
+        if(lineData.length>0) {
+          return -height;
+        } else {
+          return 0;
+        }
+      });
+  }
 
   function updateWidthHeight() {
     width = parseInt(chartDiv.style("width")) - margins.left - margins.right;
     height = parseInt(chartDiv.style("height")) - margins.top - margins.bottom;
   }
 
-  function updateScales() {
-    xScale.range([0, width]).nice(d3.timeYear);
-    if (chartEnabled) {
+  function updateSVGDimensions() {
+    svg.attr("width", width + margins.left + margins.right)
+       .attr("height", height + margins.bottom + margins.top);
+    chart.select(".mouseCatcher")
+      .attr("width", width)
+      .attr("height", height + margins.bottom);
+  }
+
+  function updateScaleRanges() {
+    xScale.range([0, width]).nice();
+    if (lineData.length > 0) {
       yScale.range([height, 0]).nice();
     } else {
       yScale.range([height, height]).nice();
     }
   }
 
-  function resetScaleDomains() {
-    xScale.domain(d3.extent(data, function(d) { return d.date; }));
-    // if there is no value, make it 0?
-    yScale.domain(d3.extent(data, function(d) {
-      if(chartEnabled) {
-        return d.value;
+  // TODO Could split this into two functions, one for xScale and yScale.
+  function updateScaleDomains() {
+    // xScale is easy
+    // xScale.domain(d3.extent(dates));
+
+    var datesExtent = d3.extent(snappingDates);
+
+
+    for (var i = 0; i < lineData.length; i += 1) {
+      var extent = d3.extent(lineData[i], function(d) {
+        return d.date;
+      });
+      datesExtent[0] = extent[0] < datesExtent[0] ? extent[0] : datesExtent[0];
+      datesExtent[1] = extent[1] > datesExtent[1] ? extent[1] : datesExtent[1];
+    }
+    xScale.domain(datesExtent);
+    // console.log(datesExtent);
+
+    // yScale depends on the existing lineData
+    if(lineData.length > 0) {
+      var minY = Infinity;
+      var maxY = Number.NEGATIVE_INFINITY;
+      // Loop through each lineData element...
+      for (var i = 0; i < lineData.length; i += 1) {
+        var extent = d3.extent(lineData[i], function(d) {
+          return d.value;
+        });
+        minY = extent[0] < minY ? extent[0] : minY;
+        maxY = extent[1] > maxY ? extent[1] : maxY;
       }
-      return false; 
-    }));
+      yScale.domain([minY, maxY]);
+    } else {
+      yScale.domain(false);
+    }
   }
 
   function styleAxes() {
@@ -92,275 +228,209 @@ LTVis.TimelineChart = function(divID, initialData){
     y.selectAll("text").attr("fill", textColor).attr("font-size", 10);
   }
 
+  function updateSnappingTicks() {
+    snappingTicks.selectAll("line").remove();
+    // Loop through the snappingDates
+    for(var i = 0; i < snappingDates.length; i += 1) {
+      snappingTicks.append("line")
+        .attr("transform",
+              "translate(" + xScale(snappingDates[i]) + "," + height + ")")
+        .attr("y2", -7)
+        .style("stroke", "rgb(170,170,170)")
+        .style("stroke-width", "1px");
+    }
+  }
+
   function updateAxes() {
     xAxis.ticks(Math.max(width/100, 2));
-    yAxis.ticks(Math.max(height/100, 2));
+    yAxis.ticks(Math.max(height/30, 2));
     chart.select('.x.axis')
-      .attr("transform", "translate(0," + height + ")")
-      .call(xAxis);
+      .call(xAxis)
+      .attr("transform", "translate(0," + height + ")");
     chart.select('.y.axis')
       .call(yAxis);
+    updateSnappingTicks();
     styleAxes();
   }
 
-  function updateSVGDimensions() {
-    svg.attr("width", width + margins.left + margins.right)
-       .attr("height", height + margins.bottom + margins.top);
-    chart.select(".mouseCatcher")
-      .attr("width", width)
-      .attr("height", height + margins.bottom);
+  function fitToDiv() {
+    updateWidthHeight();
+    updateScaleDomains();
+    updateScaleRanges();
+    updateSVGDimensions();
+    updateAxes();
+    updateLines();
+    updateSlider(selectedSnappingDate);
   }
 
-  function updateLine() {
-    lineSVG.attr("d", line)
-      .style("stroke", function() {
-        if(chartEnabled) {
-          return "green";
-        } else {
-          return "none";
-        }
-      });
+  
+
+  // lineData is an object with data:value pairs.
+  // Make it into an array of {date:date, value:value} objects,
+  // in ascending order by date.
+  function formatLineData(lineData) {
+    // collect the dates in an array
+    var lineDates  = [];
+    for(var i in lineData) {
+      if (lineData.hasOwnProperty(i)) {
+        lineDates.push(i);
+      }
+    }
+    // Sort the lineDates. They are strings tho. 
+    // So compare parsed versions of the strings.
+    // Here is the compare function
+    function parseAndCompareDates(a,b) {
+      var aParsed = parseTime(a);
+      var bParsed = parseTime(b);
+      if (aParsed < bParsed) {
+        return -1;
+      }
+      if (aParsed > bParsed) {
+        return 1;
+      }
+      return 0;
+    }
+    // Here is the sorting, which uses the compare function
+    lineDates.sort(parseAndCompareDates);
+
+    // Create the formattedLineData array, making sure they are in order by date.
+    var formattedLineData = [];
+    for (var i = 0; i < lineDates.length; i += 1) {
+      var ob = {};
+      ob.date = parseTime(lineDates[i]); //  dates[i];
+      ob.value = lineData[lineDates[i]];
+      formattedLineData.push(ob);
+    }
+    return formattedLineData;
   }
 
-  function configSlider() {
-    var circle = sliderHandle.append("circle")
-      .style("stroke", "none")
-      .style("fill", "rgb(102,189,180")
-      .attr("r", 6);
-    var handleLine = sliderHandle.append("line")
-      .style("stroke", "rgb(102,189,180")
-      .style("stroke-width", "3px");
+  
 
-    sliderHandle
-      .on("mouseover", function() {
-        focusPoint.style("display", null);
-        tooltip.style("display", null); 
+  function drawLine(l) {
+    // console.log(l);
+    var newLineSVG = linesSVG.append("path")
+      .data([l])
+      .attr("class", "line")
+      .attr("stroke", "green")
+      .attr("stroke-width", 2)
+      .attr("fill", "none")
+      .attr("d", line)
+      .on("mouseover", function(d) {
+        d3.select(this).attr("stroke", "yellow");
+        console.log(d);
       })
       .on("mouseout", function() {
-        focusPoint.style("display", "none");
-        tooltip.style("display", "none"); 
-      })
-      .on("mousemove", function() {
-        var d = getNearestDataPoint(d3.mouse(this)[0]);
-        updateFocus(d);
+        d3.select(this).attr("stroke", "green");
       });
-
-    // Set up drag events for the slider. Needs to be fired on drag events for
-    // the slider AND the mousecatcher, which is a bit awkward, but required
-    // if we want to sometime have multiple sliderHandles. 
-    sliderHandle.call(d3.drag()
-        .on("start.interrupt", function() {})
-        .on("start drag", drag)
-        .on("end", dragEnd))
-    chart.select(".mouseCatcher")
-      .call(d3.drag()
-        .on("start.interrupt", function() {})
-        .on("start drag", drag)
-        .on("end", dragEnd));
-
-    function drag() {
-      var x = d3.mouse(this)[0];
-      if(x < 0) {
-        x = 0;
-      } else if (x > width) {
-        x = width;
-      }
-      var point = getNearestDataPoint(x);
-      updateSlider({date: xScale.invert(x)});
-      updateFocus(point);
-      circle.attr("r", 7)
-            .style("fill", "rgb(122,209,200"); //"rgb(102,189,180"
-      handleLine.style("stroke-width", "4px")
-          .style("stroke", "rgb(122,209,200");
-    }
-    function dragEnd() {
-      var point = getNearestDataPoint(d3.mouse(this)[0]);
-      updateSelectedDataPoint(point);
-      circle.attr("r", 6)
-            .style("fill", "rgb(102,189,180");
-      handleLine.style("stroke-width", "3px")
-          .style("stroke", "rgb(102,189,180");
-    }
   }
 
-  function getNearestDataPoint(mouseEventX) {
-    var x0 = xScale.invert(mouseEventX);
-    var i = bisectYear(data, x0, 1);
-    var d0 = data[i-1];
-    var d1 = data[i];
-    if(typeof d1 === "undefined") { return d0 };
-    var d = x0 - d0.date > d1.date - x0 ? d1 : d0;
-    return d;
+  function updateLines() {
+    linesSVG.selectAll("path")
+      .attr("d", line);
   }
 
-  function updateSelectedDataPoint(d) {
-    // only do something if d is different from selectedDataPoint
-    if(d !== selectedDataPoint) {
-      selectedDataPoint = d;
-      dispatch.call("change");
-    }
-    updateSlider(d);
-  }
+  function drawLines() {
+    // Clear all the currently drawn lines, if there are any.
+    linesSVG.selectAll("path").remove();
 
-  function updateSlider(d) {
-    chart.select(".sliderHandle").select("circle")
-         .attr("transform",
-               "translate(" + xScale(d.date) + "," + 
-                               height + ")");
-    chart.select(".sliderHandle").select("line")
-         .attr("transform", 
-               "translate(" + xScale(d.date) + "," + 
-                               height + ")")
-         .attr("y2", -height)
-         .attr("y2", function() {
-          if(chartEnabled) {
-            return -height;
-          } else {
-            return 0;
-          }
-         });
-  }
+    // Need to update the yAxis range, domain, and rendering to fit the 
+    // y-range of the line data.
+    updateScaleDomains(); 
+    updateScaleRanges();
+    updateAxes();
 
-  function formatData(dataToFormat) {
-    dataToFormat.forEach(function(d) {
-      d.date = Number(d.date);
-      if(typeof d.value !== "undefined" || typeof d.value !== null) {
-        d.value = +d.value;
-      } else {
-        d.value = null;
-      }
-    });
-  }
-
-  function config() {
-    // Format the data a bit
-    formatData(data);
-
-    // Set up the scale domains. 
-    resetScaleDomains();
+    // The yAxis tick labels can be any width, so right now they might either
+    // be off the visible area, or too small for the amount of white space in 
+    // the left margin. So the left margin needs to be adjusted to fix the
+    // tick lables, and the chart then nudged left or right using the new
+    // margin.
+    updateMargins();
+    chart.attr("transform", "translate(" + (margins.left + 2) + "," + margins.top + ")");
     
-    // append the x line
-    focusPoint.append("line")
-      .attr("class", "x")
-      .style("stroke", "rgb(210,210,210)")
-      .style("stroke-dasharray", "3,3")
-      .style("opacity", 1)
-      .attr("y1", 0)
-      .attr("y2", height);
+    // Since the chart was nudged left or right, now the xAxis width needs
+    // adjusted to fit within the margins.
+    // These functions also update the yAxis, though it isn't necessary.
+    // updateScaleDomains(); // Maybe not needed?
+    updateScaleRanges();
+    updateAxes();
+    updateSlider(selectedSnappingDate);
 
-    // append the y line
-    focusPoint.append("line")
-      .attr("class", "y")
-      .style("stroke", "rgb(210,210,210)")
-      .style("stroke-dasharray", "3,3")
-      .style("opacity", 1)
-      .attr("x1", width)
-      .attr("x2", width);
-
-    focusPoint.append("circle")
-      .attr("class", "y")
-      .style("fill", "white")
-      .style("stroke", "blue")
-      .attr("r", 4);
-
-    mouseCatcher
-      .on("mouseover", function() { 
-        focusPoint.style("display", null);
-        tooltip.style("display", null); 
-      })
-      .on("mouseout", function() { 
-        focusPoint.style("display", "none");
-        tooltip.style("display", "none"); 
-      })
-      .on("mousemove", mousemove);
-
-    function mousemove() {
-      var d = getNearestDataPoint(d3.mouse(this)[0]);
-      updateFocus(d);
+    // Loop through the lineData array, drawing svg lines.
+    for (var i = 0; i < lineData.length; i += 1) {
+      drawLine(lineData[i]);
     }
-    configSlider();
   }
 
-  function updateFocus(d) {
-    var y = typeof d.value === "undefined" ? height : yScale(d.value);
-    focusPoint.select("circle.y")
-      .attr("transform",
-            "translate(" + xScale(d.date) + "," +
-                           y + ")");
+  // Adjusts the margin values, which determine the white space around the
+  // chart, to fit the tick labels, which vary in width with the data.
+  function updateMargins() {
+    // Gets the bounding box of the yAxis, which includes tick labels, and
+    // adds a 2px space between the label and the left edge of the chart div.
+    var left = yAxisSVG.node().getBBox().width + 2;
+    margins.left = left >= 30 ? left : 30;
 
-    focusPoint.select(".x")
-        .attr("transform",
-              "translate(" + xScale(d.date) + "," +
-                             yScale(d.value) + ")")
-                   .attr("y2", height - yScale(d.value));
-
-    focusPoint.select(".y")
-        .attr("transform",
-              "translate(" + width * -1 + "," +
-                             yScale(d.value) + ")")
-                   .attr("x2", width + width);
-
-    tooltip
-      .html(function() {
-        var txt = "";
-        if(chartEnabled) {
-          txt += "date: " + d.date + "<br/>"  + "Value: " + d.value;
-        } else {
-          txt += d.date;
-        }
-        return txt;
-      })  
-      .style("left", function() {
-        return ((xScale(d.date) + margins.left + 5) + "px");
-      })    
-      .style("bottom", function() {
-        return ((height - yScale(d.value) + margins.bottom + 5) + "px");
-      });
-  }
-
-  function resize() {
+    // The width and height variables and the SVG dimensions depend on the
+    // margin sizes, so update them anytime the margins change.
     updateWidthHeight();
     updateSVGDimensions();
-    updateScales();
-    updateAxes();
-    updateLine();
-    updateSlider(selectedDataPoint);
   }
 
-  function loadData(d) {
-    data = d;
-    var oldSelectedDataPoint;
-    if(selectedDataPoint) {
-      oldSelectedDataPoint = selectedDataPoint;
-    } else {
-      oldSelectedDataPoint = data[(Math.round((data.length - 1) / 2))];
-    }
-    formatData(data);
-    // remake the scales
-    resetScaleDomains();
-    updateScales();
-    // remake the axes
+  function setDateRange(newDatesArray) {
+    snappingDateStrings = newDatesArray;
+    snappingDates = [];
+    snappingDateStrings.forEach(function(d) {
+      snappingDates.push(parseTime(d));
+    });
+
+    // update the x axis.
+    updateScaleDomains();
+    updateScaleRanges(); // might not be needed
     updateAxes();
-    // assign the data to the value line
-    lineSVG.data([data]);
-    // remake the data line geometry
-    updateLine();
-    // reset the selectedDataPoint
-    updateSelectedDataPoint(getNearestDataPoint(xScale(oldSelectedDataPoint.date)));
+    updateLines();
   }
+
+  function init() {
+    fitToDiv();
+    // Set up a starting location for the slider handle. Maybe the earliest date.
+    configSlider();
+    updateSlider(selectedSnappingDate);
+
+  }
+
+  init();  
 
   var dispatch = d3.dispatch("change");
 
-  config();
-  resize();
-
-  window.addEventListener("resize", resize);
-
   return {
-    resize: resize,
-    getSelectedDataPoint: function() {
-      return selectedDataPoint;
+    resize: function() {
+      fitToDiv();
     },
+    addLine: function(newLineData) {
+      // format the data
+      lineData.push(formatLineData(newLineData));
+      drawLines();
+    },
+    addMultipleLines: function(newLinesData) {
+      for (var i = 0; i < newLinesData.length; i += 1) {
+        lineData.push(formatLineData(newLinesData[i]));
+      }
+      drawLines();
+    },
+    removeLines: function() {
+      linesSVG.selectAll("path").remove();
+      margins.left = 35;
+      lineData = [];
+      drawLines();
+    },
+    setDateRange: function(newDatesArray) {
+      setDateRange(newDatesArray);
+    },
+    getSelectedDate: function() {
+      return selectedSnappingDate;
+    },
+
+
+    // events!
     on: function(event, callback) {
       try {
         dispatch.on(event, callback);
@@ -377,29 +447,6 @@ LTVis.TimelineChart = function(divID, initialData){
           "Viable Events are: " + opts;
         throw new Error(msg);
       }
-    },
-    loadData: function(newData) {
-      loadData(newData);
-    },
-    enableChart: function() {
-      chartEnabled = true;
-      updateScales();
-      resetScaleDomains();
-      updateAxes();
-      updateLine();
-      updateSlider(selectedDataPoint);
-    },
-    disableChart: function() {
-      chartEnabled = false;
-      updateScales();
-      resetScaleDomains();
-      updateAxes();
-      updateLine();
-      updateSlider(selectedDataPoint);
-    },
-    setChartOpacity: function(k) {
-      yAxisSVG.attr("opacity", k);
-      lineSVG.attr("opacity", k);
     }
-  };
+  }
 };
