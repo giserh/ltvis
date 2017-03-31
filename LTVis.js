@@ -37,6 +37,26 @@ LTVis.Map = (function() {
   var areaSummaryLayers;
   var canvasLayer = null;
 
+  // Prep needed stuff for drawing polygons
+  var drawnItems = new L.FeatureGroup();
+  var shapeOpts = { color:'#03f', weight:2 };
+  var drawControl = new L.Control.Draw({
+    position: "topright",
+    draw: {
+      polyline: false,
+      marker: false,
+      circle: false,
+      rectangle: {shapeOptions: shapeOpts},
+      polygon: {
+        shapeOptions: shapeOpts,
+        allowIntersection: false
+      }
+    },
+    edit: {
+      featureGroup: drawnItems
+    }
+  });
+
   function createCanvasLayer(url) {
     var CanvasLayer = L.GridLayer.extend({
       createTile: function(coords, done){
@@ -202,6 +222,24 @@ LTVis.Map = (function() {
       layer.addTo(map);
     },
 
+    addDrawToolbar: function() {
+
+      // Create the draw toolbar, configure some options, add it to the map!
+      map.addLayer(drawnItems);
+      map.addControl(drawControl);
+    },
+
+    removeDrawToolbar: function() {
+      map.removeControl(drawControl);
+      map.removeLayer(drawnItems);
+    },
+
+    submitDrawnPolygons: function() {
+      // get the geojson out of the drawn polygon layer, yeah?
+      console.log(drawnItems.toGeoJSON());
+      LTVis.Map.addJSONAreaSummaryLayer(drawnItems.toGeoJSON());
+    },
+
     init: function(callback) {
       // Load the config file for the map
       $.get('configFiles/mapConfig.yaml', null, function(data) {
@@ -227,6 +265,16 @@ LTVis.Map = (function() {
 
         // Add a scale bar to the map
         L.control.scale().addTo(map);
+
+        // Configure events for drawing polygons
+        map.on('draw:created', function(e) {
+          drawnItems.addLayer(e.layer);
+        });
+        map.on('draw:deleted', function(e) {
+          // Maybe do something. Probably not.
+        });
+
+        // Done making the map! Let LTVis know.
         callback(true);
       });
     }
@@ -245,7 +293,7 @@ $.extend(LTVis, {
     LTVis.Map.init(function(success) {
        // load the starting dataset
       var sliderDate = LTVis.GUI.getSelectedTimelineDate();
-      LTVis.loadDataset("mr224_biomass", LTVis.util.formatDate(sliderDate));
+      // LTVis.loadDataset("mr224_biomass", LTVis.util.formatDate(sliderDate));
     });   
   },
 
@@ -264,7 +312,8 @@ $.extend(LTVis, {
     // });
   },
 
-  // This may become obsolete if all summary data is requested dynamically from the server.
+  // This may become obsolete if all summary data is requested dynamically from 
+  // the server.
   // It will be useful if summary data is cached as csv files.
   formatImportedCSVForChart: function(d) {
 
@@ -400,6 +449,29 @@ $.extend(LTVis, {
 
     // Load a new dataset, but with the new date.
     LTVis.loadDataset(LTVis.activeDataLayer, LTVis.util.formatDate(newDate));
+  },
+
+  startDrawPolygonsMode: function() {
+    // Hide the buttons at the topright.
+    $(".iconBtn").hide();
+    // show the Done and Cancel button
+    $("#drawingBtns").show();
+
+    // add a toolbar for drawing polygons!
+    LTVis.Map.addDrawToolbar();
+  },
+  endDrawPolygonsMode: function() {
+    // Remove the toolbar from the map
+
+    $(".iconBtn").show();
+    $("#drawingBtns").hide();
+    LTVis.Map.removeDrawToolbar();
+  },
+  submitDrawnPolygons: function() {
+    // Submitting drawn polygons!
+    LTVis.endDrawPolygonsMode();
+    // Tell the map to do something with the drawn polygons
+    LTVis.Map.submitDrawnPolygons();
   }
 
 
@@ -567,6 +639,21 @@ LTVis.GUI = (function() {
         hideAllChartMenuPanels();
         $("#uploadPolygonsMenu").show();
       });
+      $("#drawPolygonsBtn").click(function() {
+        // Hide the modal
+        cancelChartSetup(); // Not really cancelling. But it is closing the 
+        // modal.
+        // Go into some kind of "drawing Polygons" mode or something.
+        // This will add the polygon drawing tools, as well as 
+        // a Done and Cancel button.
+        LTVis.startDrawPolygonsMode();
+      });
+      $("#doneDrawingBtn").click(function() {
+        LTVis.submitDrawnPolygons();
+      });
+      $("#cancelDrawingBtn").click(function() {
+        LTVis.endDrawPolygonsMode();
+      });
       $("#loadPremadeSummaryBtn").click(function() {
         hideAllChartMenuPanels();
         $("#selectPremadePolygonsMenu").show();
@@ -574,9 +661,7 @@ LTVis.GUI = (function() {
       $("#addSummaryPolygonOptionsBackBtn").click(function() {
         hideAllChartMenuPanels();
         $("#clickOrSummaryMenu").show();
-      });
-
-      
+      });      
       $("#uploadPolygonsSubmitBtn").click(function() {
         cancelChartSetup();
       });

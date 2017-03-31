@@ -339,3 +339,11 @@ div.timelineChartTooltip {
   display: none;
 }
 
+#drawingBtns {
+  display: none;
+  position: absolute;
+  right: 10px;
+  top: 200px;
+  z-index: 2;
+
+}

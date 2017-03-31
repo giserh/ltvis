@@ -13,10 +13,14 @@
   
   <!-- Stylesheets -->
   <link href='https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.css' rel='stylesheet'/>
+  <!-- <link rel="stylesheet" href="//api.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.2.3/leaflet.draw.css"/> -->
+  <link rel="stylesheet" href="lib/leaflet.draw-0.4.9/dist/leaflet.draw.css"/>
   <link href='style.css' rel='stylesheet'/>
 
   <!-- Javascript -->
   <script src='https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.js'></script>
+  <!-- // <script src="//api.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.2.3/leaflet.draw.js"></script> -->
+  <script src="lib/leaflet.draw-0.4.9/dist/leaflet.draw.js"></script>
   <script src="lib/jquery/jquery-3.1.1.js"></script>
   <script src="https://d3js.org/d3.v4.min.js"></script>
   <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
@@ -46,11 +50,11 @@
 
 <div id="map"></div>
 
-<button class="iconBtn" id="infoBtn">
+<!-- <button class="iconBtn" id="infoBtn">
   <svg class="icon">
     <use xlink:href="iconDefs.svg#info" />
   </svg>
-</button>
+</button> -->
 
 <button class="iconBtn" id="menuBtn">
   <svg class="icon">
@@ -87,20 +91,11 @@
   </div>
 </div>
 
-
-<div id="addPolygonsMenu" class="menuWindow">
-  <div class="menuWindowHeader">
-    <span class="close menu-close">&times;</span>
-    <h3>Define Summary Area Polygons</h3>
-  </div>
-  <div class="menuWindowContent">
-    
-
-
-
-
-  </div>
+<div id="drawingBtns">
+  <button id="doneDrawingBtn" class="drawingBtn">Done Drawing</button><br />
+  <button id="cancelDrawingBtn" class="drawingBtn">Cancel</button>
 </div>
+
 
 
 <!-- Data Selection Modal -->
@@ -177,8 +172,9 @@
       </div>
 
       <div id="addSummaryPolygonOptions" class="chartMenuPanel">
-        <button id="createYourOwnSummaryBtn">Create your own</button>
-        <button id="loadPremadeSummaryBtn">Explore pre-made</button>
+        <button id="createYourOwnSummaryBtn">Upload</button>
+        <button id="drawPolygonsBtn">Draw</button>
+        <button id="loadPremadeSummaryBtn">Load pre-made</button>
         <button class="chartMenuBackBtn" id="addSummaryPolygonOptionsBackBtn">Back</button>
         <button class="chartMenuCancelButton">Cancel</button>
       </div>
