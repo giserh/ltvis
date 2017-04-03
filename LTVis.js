@@ -116,6 +116,10 @@ LTVis.Map = (function() {
       return areaSummaryLayers;
     },
 
+    clearAreaSummaryPolygons: function() {
+      areaSummaryLayers.clearLayers();
+    },
+
     addJSONAreaSummaryLayer: function(geoJSON) {
       areaSummaryLayers.clearLayers();
       console.log(geoJSON);
@@ -437,7 +441,7 @@ $.extend(LTVis, {
       // Pass it into the graph here!
       LTVis.GUI.removeLinesFromTimelineChart();
       if(d) {
-        LTVis.GUI.addLineToTimelineChart(d.mean);
+        LTVis.GUI.addLineToTimelineChart(d[request.property].mean);
       }      
     });
   },
@@ -456,6 +460,9 @@ $.extend(LTVis, {
     $(".iconBtn").hide();
     // show the Done and Cancel button
     $("#drawingBtns").show();
+
+    // Clear the current polygons
+    LTVis.Map.clearAreaSummaryPolygons();
 
     // add a toolbar for drawing polygons!
     LTVis.Map.addDrawToolbar();
