@@ -64,11 +64,11 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
 
     sliderHandle
       .on("mouseover", function() {
-        // console.log("slider handle mouseover");
+        console.log("slider handle mouseover");
       });
 
     sliderHandle.call(d3.drag()
-        // .on("start.interrupt", function() { console.log("Interrupted?"); })
+        .on("start.interrupt", function() { console.log("Interrupted?"); })
         .on("start drag", drag)
         .on("end", dragEnd));
 
@@ -192,7 +192,6 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
       datesExtent[1] = extent[1] > datesExtent[1] ? extent[1] : datesExtent[1];
     }
     xScale.domain(datesExtent);
-    // console.log(datesExtent);
 
     // yScale depends on the existing lineData
     if(lineData.length > 0) {
@@ -205,6 +204,12 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
         });
         minY = extent[0] < minY ? extent[0] : minY;
         maxY = extent[1] > maxY ? extent[1] : maxY;
+      }
+
+      if (minY === maxY) {
+        var k = minY;
+        minY -= k;
+        maxY = k === 0 ? 1 : k; // If the values are all zero, make the max 1
       }
       yScale.domain([minY, maxY]);
     } else {
