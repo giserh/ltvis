@@ -16,6 +16,12 @@ body {
 
 /* ---------------- Icon Buttons ---------------*/
 
+#mainButtonGroup {
+  position: absolute;
+  z-index: 2;
+  right: 10px;
+}
+
 .icon {
   width: 100%;
   height: 100%;
@@ -51,7 +57,7 @@ button.iconBtn::-moz-focus-inner {
     border: 0 none !important;
 }
 
-button#infoBtn {
+/*button#infoBtn {
   position: absolute;
   left: 10px;
   top: 100px;
@@ -75,7 +81,7 @@ button#downloadBtn {
   position: absolute;
   bottom: 40px;
   right: 5px;
-}
+}*/
 
 button#chartBtn {
 
@@ -345,5 +351,4 @@ div.timelineChartTooltip {
   right: 10px;
   top: 200px;
   z-index: 2;
-
 }

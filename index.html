@@ -14,13 +14,13 @@
   <!-- Stylesheets -->
   <link href='https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.css' rel='stylesheet'/>
   <!-- <link rel="stylesheet" href="//api.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.2.3/leaflet.draw.css"/> -->
-  <link rel="stylesheet" href="lib/leaflet.draw-0.4.9/dist/leaflet.draw.css"/>
+  <link rel="stylesheet" href="lib/LeafletDraw/dist/leafletDraw.css"/>
   <link href='style.css' rel='stylesheet'/>
 
   <!-- Javascript -->
   <script src='https://api.mapbox.com/mapbox.js/v3.0.1/mapbox.js'></script>
   <!-- // <script src="//api.mapbox.com/mapbox.js/plugins/leaflet-draw/v0.2.3/leaflet.draw.js"></script> -->
-  <script src="lib/leaflet.draw-0.4.9/dist/leaflet.draw.js"></script>
+  <script src="lib/LeafletDraw/dist/leafletDraw.js"></script>
   <script src="lib/jquery/jquery-3.1.1.js"></script>
   <script src="https://d3js.org/d3.v4.min.js"></script>
   <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
@@ -56,23 +56,28 @@
   </svg>
 </button> -->
 
-<button class="iconBtn" id="menuBtn">
-  <svg class="icon">
-    <use xlink:href="iconDefs.svg#menu" />
-  </svg>
-</button>
 
-<button class="iconBtn" id="layerBtn">
-  <svg class="icon">
-    <use xlink:href="iconDefs.svg#layer" />
-  </svg>
-</button>
+<div id="mainButtonGroup">
+  <button class="iconBtn" id="menuBtn">
+    <svg class="icon">
+      <use xlink:href="iconDefs.svg#menu" />
+    </svg>
+  </button>
 
-<button class="iconBtn" id="downloadBtn">
-  <svg class="icon">
-    <use xlink:href="iconDefs.svg#download" />
-  </svg>
-</button>
+  <button class="iconBtn" id="layerBtn">
+    <svg class="icon">
+      <use xlink:href="iconDefs.svg#layer" />
+    </svg>
+  </button>
+
+  <button class="iconBtn" id="downloadBtn">
+    <svg class="icon">
+      <use xlink:href="iconDefs.svg#download" />
+    </svg>
+  </button>
+</div>
+
+
 
 <div id="timelineContainer">
   <div id="timeRangeContainer">

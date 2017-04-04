@@ -457,7 +457,7 @@ $.extend(LTVis, {
 
   startDrawPolygonsMode: function() {
     // Hide the buttons at the topright.
-    $(".iconBtn").hide();
+    $("#mainButtonGroup").hide();
     // show the Done and Cancel button
     $("#drawingBtns").show();
 
@@ -470,7 +470,7 @@ $.extend(LTVis, {
   endDrawPolygonsMode: function() {
     // Remove the toolbar from the map
 
-    $(".iconBtn").show();
+    $("#mainButtonGroup").show();
     $("#drawingBtns").hide();
     LTVis.Map.removeDrawToolbar();
   },
