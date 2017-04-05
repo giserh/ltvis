@@ -326,16 +326,8 @@ div.timelineChartTooltip {
 
 /* ---------------- Chart Options Menus ---------------*/
 
-#clickOrSummaryMenu {
-
-}
-
-#chartByClickOptionsMenu {
-  display: none;
-}
-
 #addSummaryPolygonOptions {
-  display: none;
+
 }
 
 #uploadPolygonsMenu {

@@ -157,11 +157,6 @@ LTVis.Map = (function() {
         },
         onEachFeature: onEachFeature
       });
-      // .on("click", function(){
-      //   this.setStyle({
-      //     color: "rgb(0,0,0)"
-      //   })
-      // });
 
       var bounds = newLyr.getBounds();
       map.fitBounds(bounds);
@@ -172,15 +167,13 @@ LTVis.Map = (function() {
           mouseover: mouseover,
           mouseout: mouseout,
           click: click
-          // mousedown: mousedown
         })
       }
 
       function mouseover(e) {
         var layer = e.target;
-        // do different things if it's a point vs polygon or line
         if(layer.feature.geometry.type === "Point") {
-          console.log("this is a point");
+          // Come kind of hover feedback for points?
         } else {
           console.log("it's some other thing");
           layer.setStyle({
@@ -194,7 +187,7 @@ LTVis.Map = (function() {
       function mouseout(e) {
         var layer = e.target;
         if(layer.feature.geometry.type === "Point") {
-          console.log("this is a point");
+          // Come kind of hover feedback for points?
         } else {
           layer.setStyle({
             weight: 1
@@ -203,38 +196,16 @@ LTVis.Map = (function() {
         
       }
 
-      // function mousedown_old(e) {
-      //   // change the color of all the polygons back to black
-      //   newLyr.setStyle({color: "black"});
-      //   var layer = e.target;
-      //   layer.setStyle({
-      //     color: "red"
-      //   })
-      //   if (!L.Browser.ie && !L.Browser.opera) {
-      //     layer.bringToFront();
-      //   }
-      //   console.log(e.target.feature.properties.id);
-      //   console.log(LTVis.activeAreaSummaryData[e.target.feature.properties.id]);
-      //   // FIXME make a function in LTVis that does the next two things
-      //   var data = LTVis.activeAreaSummaryData[e.target.feature.properties.id];
-      //   LTVis.activeTimelineChart.loadData(data);
-      // }
       function click(e) {
         // Style the clicked feature
         newLyr.setStyle({color: "black"});
         newLyr.eachLayer(function(lyr) {
-          // console.log(lyr);
           if(lyr.feature.geometry.type === "Point") {
-            // blue!
             lyr.setIcon(blueMarker);
           }
         })
-        // somehow select all icons and turn them blue.
         var layer = e.target;
-
-        // if this is a point, do some other stuff.
         if(layer.feature.geometry.type === "Point") {
-          console.log("this is a point");
           e.target.setIcon(redMarker);
         } else {
           layer.setStyle({
@@ -243,8 +214,6 @@ LTVis.Map = (function() {
           if (!L.Browser.ie && !L.Browser.opera) {
             layer.bringToFront();
           }
-          // Display the summary data for this feature in the graph
-          
         }
         LTVis.displayFeatureSummaryData(e.target.feature);
       }
@@ -307,7 +276,10 @@ LTVis.Map = (function() {
         map = L.mapbox.map('map', null, mapConfig.map.options);
 
         // Set the initial map view
-        map.setView(mapConfig.map.initialView.center, mapConfig.map.initialView.zoom);
+        map.setView(
+          mapConfig.map.initialView.center, 
+          mapConfig.map.initialView.zoom
+        );
 
         // Add a basemap layer
         L.mapbox.styleLayer(
@@ -457,7 +429,7 @@ $.extend(LTVis, {
       data: request,
       error: function(R, msg, st) {
          // $("#message").html('An error occurred in the web application.<br>'+
-         //  R.responseText+'<br>'+msg+'<br>'+st +"<br>"+JSON.stringify(request));
+         // R.responseText+'<br>'+msg+'<br>'+st +"<br>"+JSON.stringify(request));
         console.log('An error occurred in the web application.<br>'+
           R.responseText+'<br>'+msg+'<br>'+st +"<br>"+JSON.stringify(request));
         callback(false);
@@ -485,7 +457,6 @@ $.extend(LTVis, {
     console.log(JSON.stringify(feature.geometry));
 
     LTVis.requestFeatureTimeSeriesData(feature, request, function(d) {
-      // console.log(d);
       // d is the time series data from the server!
       // Pass it into the graph here!
       LTVis.GUI.removeLinesFromTimelineChart();
@@ -497,9 +468,6 @@ $.extend(LTVis, {
 
   // This gets called by the GUI module when the timeline slider is moved.
   timelineDateChanged: function(newDate) {
-    // OK, do some stuff. Need to load an entirely new layer with a new date.
-    // well, first parse the date.
-
     // Load a new dataset, but with the new date.
     LTVis.loadDataset(LTVis.activeDataLayer, LTVis.util.formatDate(newDate));
   },
@@ -545,7 +513,7 @@ $.extend(LTVis, {
 
 // The GUI module sets up menus and buttons unique to this page. 
 // TODO Should only call functions in the main LTVis app namespace, NOT make
-// calls directly to any other modules. E.g., don't call LTVis.Map.doSomething(), 
+// calls directly to any other modules. E.g. don't call LTVis.Map.doSomething(), 
 // instead call LTVis.doSomething(), and let LTVis call LTVis.Map.doSomething().
 // While this is a bit redundant, it helps keep the GUI indepentant of other 
 // modules.
@@ -606,8 +574,6 @@ LTVis.GUI = (function() {
 
   function initSummaryPolygonSelections() {
     $(".summaryPolygonsSelection").click(function() {
-      // console.log("summary polygon selection clicked");
-
       // Load them summary polygons
       var root = "data/premadeAreaSummaries/";
       var id = $(this).attr("id");
@@ -615,11 +581,7 @@ LTVis.GUI = (function() {
       var pathToGeoJSON = root + id + "_geom.json";
       // var pathToData =    root + id + "_data.json";
       var pathToData =    root + id + "_data.csv";
-
-
       LTVis.loadSummaryData(pathToGeoJSON,pathToData);
-
-
       $(".modal").css("display", "none"); 
       resetChartMenu();
     })
@@ -633,7 +595,7 @@ LTVis.GUI = (function() {
     // hide all the menus
     hideAllChartMenuPanels();
     // show the first one
-    $("#clickOrSummaryMenu").show();
+    $("#addSummaryPolygonOptions").show();
   }
 
   function cancelChartSetup() {
@@ -680,23 +642,9 @@ LTVis.GUI = (function() {
         cancelChartSetup();
       });
 
-      // Click Or Summary Menu
-      $("#chartByClickBtn").click(function() {
-        hideAllChartMenuPanels();
-        $("#chartByClickOptionsMenu").show();
-      });
       $("#addSummaryAreasBtn").click(function() {
         hideAllChartMenuPanels();
         $("#addSummaryPolygonOptions").show();
-      });
-     
-      // Chart by click options menu
-      $("#chartByClickOptionsSubmitBtn").click(function() {
-        cancelChartSetup();
-      });
-      $("#chartByClickOptionsBackBtn").click(function() {
-        hideAllChartMenuPanels();
-        $("#clickOrSummaryMenu").show();
       });
 
       // Add summary polygon
@@ -722,11 +670,7 @@ LTVis.GUI = (function() {
       $("#loadPremadeSummaryBtn").click(function() {
         hideAllChartMenuPanels();
         $("#selectPremadePolygonsMenu").show();
-      });
-      $("#addSummaryPolygonOptionsBackBtn").click(function() {
-        hideAllChartMenuPanels();
-        $("#clickOrSummaryMenu").show();
-      });      
+      });     
       $("#uploadPolygonsSubmitBtn").click(function() {
         cancelChartSetup();
       });
@@ -738,8 +682,6 @@ LTVis.GUI = (function() {
         hideAllChartMenuPanels();
         $("#addSummaryPolygonOptions").show();
       });
-
-      // Load the starting dataset. 
     },
     addLineToTimelineChart: function(lineData) {
       timelineChart.addLine(lineData);
@@ -750,7 +692,6 @@ LTVis.GUI = (function() {
     getSelectedTimelineDate: function() {
       return timelineChart.getSelectedDate();
     }
-
   };
 
 })(); // END LTVis.GUI module.
