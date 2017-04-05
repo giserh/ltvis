@@ -44,7 +44,7 @@ LTVis.Map = (function() {
     position: "topright",
     draw: {
       polyline: false,
-      marker: false,
+      // marker: false,
       circle: false,
       rectangle: {shapeOptions: shapeOpts},
       polygon: {
@@ -137,11 +137,12 @@ LTVis.Map = (function() {
           }
         },
         onEachFeature: onEachFeature
-      }).on("click", function(){
-        this.setStyle({
-          color: "rgb(0,0,0)"
-        })
       });
+      // .on("click", function(){
+      //   this.setStyle({
+      //     color: "rgb(0,0,0)"
+      //   })
+      // });
 
       var bounds = newLyr.getBounds();
       map.fitBounds(bounds);
@@ -151,23 +152,36 @@ LTVis.Map = (function() {
         layer.on({
           mouseover: mouseover,
           mouseout: mouseout,
-          // click: click,
-          mousedown: mousedown
+          click: click
+          // mousedown: mousedown
         })
       }
 
       function mouseover(e) {
         var layer = e.target;
-        layer.setStyle({
-          weight: 3
-        })
+        // do different things if it's a point vs polygon or line
+        if(layer.feature.geometry.type === "Point") {
+          console.log("this is a point");
+        } else {
+          console.log("it's some other thing");
+          layer.setStyle({
+            weight: 3
+          });
+        }
+
+        
       }
 
       function mouseout(e) {
         var layer = e.target;
-        layer.setStyle({
-          weight: 1
-        })
+        if(layer.feature.geometry.type === "Point") {
+          console.log("this is a point");
+        } else {
+          layer.setStyle({
+            weight: 1
+          });
+        }
+        
       }
 
       // function mousedown_old(e) {
@@ -186,21 +200,26 @@ LTVis.Map = (function() {
       //   var data = LTVis.activeAreaSummaryData[e.target.feature.properties.id];
       //   LTVis.activeTimelineChart.loadData(data);
       // }
-      function mousedown(e) {
+      function click(e) {
         // Style the clicked feature
         newLyr.setStyle({color: "black"});
         var layer = e.target;
-        layer.setStyle({
-          color: "red"
-        })
-        if (!L.Browser.ie && !L.Browser.opera) {
-          layer.bringToFront();
+
+        // if this is a point, do some other stuff.
+        if(layer.feature.geometry.type === "Point") {
+          console.log("this is a point");
+        } else {
+          layer.setStyle({
+            color: "red"
+          })
+          if (!L.Browser.ie && !L.Browser.opera) {
+            layer.bringToFront();
+          }
+          // Display the summary data for this feature in the graph
+          
         }
-        // Display the summary data for this feature in the graph
         LTVis.displayFeatureSummaryData(e.target.feature);
       }
-
-      
     },
 
     addCanvasLayer: function(layer) {
@@ -228,12 +247,18 @@ LTVis.Map = (function() {
 
     addDrawToolbar: function() {
 
+      // Decrease opacity of other layers
+      canvasLayer.setOpacity(0.5);
+
       // Create the draw toolbar, configure some options, add it to the map!
       map.addLayer(drawnItems);
       map.addControl(drawControl);
     },
 
     removeDrawToolbar: function() {
+      // FIXME Set opacity back to whatever the UI setting is.
+      // Ehen there is one.
+      canvasLayer.setOpacity(1);
       map.removeControl(drawControl);
       map.removeLayer(drawnItems);
     },
@@ -267,8 +292,9 @@ LTVis.Map = (function() {
         
         // L.control.attribution({position: "bottomleft"}).addTo(map);
 
-        // Add a scale bar to the map
-        L.control.scale().addTo(map);
+        // Add a scale bar scalebar to the map
+        // TODO Temporarily disabled until we pick a good place for it.
+        // L.control.scale().addTo(map);
 
         // Configure events for drawing polygons
         map.on('draw:created', function(e) {
@@ -292,14 +318,7 @@ LTVis.Map = (function() {
 // above. The only place where calls to the modules above should happen are 
 // in the LTVis namespace. 
 $.extend(LTVis, {
-  init: function() {
-    LTVis.GUI.init();
-    LTVis.Map.init(function(success) {
-       // load the starting dataset
-      var sliderDate = LTVis.GUI.getSelectedTimelineDate();
-      // LTVis.loadDataset("mr224_biomass", LTVis.util.formatDate(sliderDate));
-    });   
-  },
+  
 
   loadSummaryData: function(pathToGeoJSON, pathToData, config) {
     // load the polygons to the map
@@ -435,8 +454,10 @@ $.extend(LTVis, {
       'format':'json' // choice of 'json' or 'yaml'
     }
 
+    console.log(JSON.stringify(feature.geometry));
+
     LTVis.requestFeatureTimeSeriesData(feature, request, function(d) {
-      console.log(d);
+      // console.log(d);
       // d is the time series data from the server!
       // Pass it into the graph here!
       LTVis.GUI.removeLinesFromTimelineChart();
@@ -479,6 +500,15 @@ $.extend(LTVis, {
     LTVis.endDrawPolygonsMode();
     // Tell the map to do something with the drawn polygons
     LTVis.Map.submitDrawnPolygons();
+  },
+
+  init: function() {
+    LTVis.GUI.init();
+    LTVis.Map.init(function(success) {
+       // load the starting dataset
+      var sliderDate = LTVis.GUI.getSelectedTimelineDate();
+      LTVis.loadDataset("mr224_biomass", LTVis.util.formatDate(sliderDate));
+    });   
   }
 
 
