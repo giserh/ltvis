@@ -57,6 +57,25 @@ LTVis.Map = (function() {
     }
   });
 
+  // Set up some markers
+  var blueMarker = new L.Icon({
+    iconUrl:   'lib/leaflet-color-markers/img/marker-icon-blue.png',
+    shadowUrl: 'lib/LeafletDraw/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+
+  var redMarker = new L.Icon({
+    iconUrl:   'lib/leaflet-color-markers/img/marker-icon-red.png',
+    shadowUrl: 'lib/LeafletDraw/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+
   function createCanvasLayer(url) {
     var CanvasLayer = L.GridLayer.extend({
       createTile: function(coords, done){
@@ -203,11 +222,20 @@ LTVis.Map = (function() {
       function click(e) {
         // Style the clicked feature
         newLyr.setStyle({color: "black"});
+        newLyr.eachLayer(function(lyr) {
+          // console.log(lyr);
+          if(lyr.feature.geometry.type === "Point") {
+            // blue!
+            lyr.setIcon(blueMarker);
+          }
+        })
+        // somehow select all icons and turn them blue.
         var layer = e.target;
 
         // if this is a point, do some other stuff.
         if(layer.feature.geometry.type === "Point") {
           console.log("this is a point");
+          e.target.setIcon(redMarker);
         } else {
           layer.setStyle({
             color: "red"
