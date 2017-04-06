@@ -49,6 +49,36 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
         .attr("class", "sliderHandle")
         .style("pointer-events", "all");
 
+  // Tooltip stuff
+  var dateTooltip = d3.select("#" + divID).append("div")
+        .attr("class", "dateTooltip")       
+        .style("display", "none");
+        // .style("white-space", "nowrap");
+
+
+  // var formatMonth = d3.timeFormat("%b");
+  // With the above, calling formatMonth(date) makes June into Jun, which is 
+  // weird. So here's one where June is June. Less weird.
+  function formatMonth(date) {
+    var months = ["Jan","Feb","Mar","Apr","May","June","July","Aug","Sep","Oct",
+                  "Nov","Dec"];
+    return months[date.getMonth()];
+  }
+
+  function updateDateTooltip(date) {
+    dateTooltip.html(function() {
+      var month = formatMonth(date);
+      return (month + " " + date.getDate() + "<br/>" + date.getFullYear());
+    });
+    dateTooltip.style("left", function() {
+      var divWidth = dateTooltip.node().getBoundingClientRect().width;
+      return ((xScale(date) + margins.left - Number(divWidth)/2) + "px"); 
+    })
+    .style("bottom", function() {
+      return (margins.bottom + 10) + "px";
+    })
+  } 
+
   function configSlider() {
     
     var handleLine = sliderHandle.append("line")
@@ -73,7 +103,7 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
       });
 
     sliderHandle.call(d3.drag()
-        .on("start.interrupt", function() { console.log("Interrupted?"); })
+        .on("start.interrupt", function() { console.log("Interrupted? Or started?"); })
         .on("start drag", drag)
         .on("end", dragEnd));
 
@@ -103,6 +133,14 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
       var nearestSnappingDate = getNearestSnappingDate(x);
       ghostCircle.attr("transform",
                        "translate(" + xScale(nearestSnappingDate) + "," + height + ")");
+
+      // show the tooltip!
+      dateTooltip.style("display", null);
+
+      // update the tooltip.
+      updateDateTooltip(nearestSnappingDate);
+      
+      
     }
     function dragEnd() {
 
@@ -115,6 +153,7 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
       circle.attr("r", 6)
             .style("fill", "rgb(102,189,180");
       ghostCircle.style("display", "none");
+      dateTooltip.style("display", "none");
     }
   }
 
