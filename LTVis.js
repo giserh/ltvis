@@ -43,10 +43,15 @@ LTVis.Map = (function() {
   var drawControl = new L.Control.Draw({
     position: "topright",
     draw: {
-      polyline: false,
+      // polyline: false,
       // marker: false,
       circle: false,
-      rectangle: {shapeOptions: shapeOpts},
+      polyline: {
+        shapeOptions: { color:'#03f', weight:4, fill: false }
+      },
+      rectangle: {
+        shapeOptions: shapeOpts
+      },
       polygon: {
         shapeOptions: shapeOpts,
         allowIntersection: false
@@ -141,17 +146,15 @@ LTVis.Map = (function() {
 
     addJSONAreaSummaryLayer: function(geoJSON) {
       areaSummaryLayers.clearLayers();
-      console.log(geoJSON);
-
       var newLyr = L.geoJSON(geoJSON, {
         style: function() {
           return {
             stroke: true,
-            color: "rgb(0,0,0)",
+            color: '#03f',
             weight: 1,
             opacity: 1,
-            fill: true,
-            fillColor: "rgb(200,200,200)",
+            // fill: true,
+            fillColor: "#03f",
             fillOpacity: 0
           }
         },
@@ -163,6 +166,12 @@ LTVis.Map = (function() {
       areaSummaryLayers.addLayer(newLyr);
 
       function onEachFeature(feature, layer) {
+        console.log(feature);
+        if(feature.geometry.type === "LineString") {
+          layer.setStyle({weight: 3});
+        } else if(feature.geometry.type === "Polygon") {
+          layer.setStyle({fillOpacity: 0.2})
+        }
         layer.on({
           mouseover: mouseover,
           mouseout: mouseout,
@@ -174,20 +183,26 @@ LTVis.Map = (function() {
         var layer = e.target;
         if(layer.feature.geometry.type === "Point") {
           // Come kind of hover feedback for points?
+        } else if(layer.feature.geometry.type === "LineString") {
+          layer.setStyle({
+            weight: 4
+          })
         } else {
-          console.log("it's some other thing");
+          // it's a Polygon probably.
           layer.setStyle({
             weight: 3
           });
         }
-
-        
       }
 
       function mouseout(e) {
         var layer = e.target;
         if(layer.feature.geometry.type === "Point") {
           // Come kind of hover feedback for points?
+        } else if(layer.feature.geometry.type === "LineString") {
+          layer.setStyle({
+            weight: 3
+          })
         } else {
           layer.setStyle({
             weight: 1
@@ -198,7 +213,7 @@ LTVis.Map = (function() {
 
       function click(e) {
         // Style the clicked feature
-        newLyr.setStyle({color: "black"});
+        newLyr.setStyle({color: "#03f"});
         newLyr.eachLayer(function(lyr) {
           if(lyr.feature.geometry.type === "Point") {
             lyr.setIcon(blueMarker);
@@ -262,7 +277,6 @@ LTVis.Map = (function() {
 
     submitDrawnPolygons: function() {
       // get the geojson out of the drawn polygon layer, yeah?
-      console.log(drawnItems.toGeoJSON());
       LTVis.Map.addJSONAreaSummaryLayer(drawnItems.toGeoJSON());
     },
 
@@ -743,7 +757,6 @@ LTVis.GUI = (function() {
 })(); // END LTVis.GUI module.
 
 })(); // END the app. No more internal app code after this. 
-
 
 
 
