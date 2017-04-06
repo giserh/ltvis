@@ -79,21 +79,24 @@
 
 
 
-<div id="timelineContainer">
-  <div id="timeRangeContainer">
-  </div>
+<div id="timelineWidgetContainer">
+
+  <div id="timelineWidget"></div>
+
   <div id="timelineButtonContainer">
     <button class="iconBtn" id="chartBtn">
       <svg class="icon">
         <use xlink:href="iconDefs.svg#chart" />
       </svg>
     </button>
-<!--     <button class="iconBtn" id="shapeBtn">
+    <button class="iconBtn" id="collapseChartBtn">
       <svg class="icon">
-        <use xlink:href="iconDefs.svg#shape" />
+        <use xlink:href="iconDefs.svg#down" />
       </svg>
-    </button> -->
+    </button>
+
   </div>
+
 </div>
 
 <div id="drawingBtns">
@@ -162,24 +165,11 @@
     </div> <!-- End modal header -->
     <!-- Modal body -->
     <div class="modal-body">
-      <!-- Data selection divs, click to display data and close modal-->
-      <!-- <div id="clickOrSummaryMenu" class="chartMenuPanel">
-        <button id="addSummaryAreasBtn">Add Summary Areas</button>
-        <button class="chartMenuCancelButton">Cancel</button>
-      </div> -->
-      
-<!--       <div id="chartByClickOptionsMenu" class="chartMenuPanel">
-        Some options for charting by click!
-        <button id="chartByClickOptionsSubmitBtn">Ok</button>
-        <button class="chartMenuBackBtn" id="chartByClickOptionsBackBtn">Back</button>
-        <button class="chartMenuCancelButton">Cancel</button>
-      </div> -->
 
       <div id="addSummaryPolygonOptions" class="chartMenuPanel">
         <button id="createYourOwnSummaryBtn">Upload</button>
         <button id="drawPolygonsBtn">Draw</button>
         <button id="loadPremadeSummaryBtn">Load pre-made</button>
-<!--         <button class="chartMenuBackBtn" id="addSummaryPolygonOptionsBackBtn">Back</button> -->
         <button class="chartMenuCancelButton">Cancel</button>
       </div>
 
@@ -198,7 +188,6 @@
 
       <div id="selectPremadePolygonsMenu" class="chartMenuPanel">
         <p>Select one of these!</p>
-
         <div class="dataSelection summaryPolygonsSelection" id="fourStates">
           <div class="dataSelectionImage"><img src="assets/images/testPolygons_4states.jpg"></div>
           <div class="dataSelectionText">

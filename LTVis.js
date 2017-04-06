@@ -538,6 +538,40 @@ LTVis.GUI = (function() {
       console.log("shapeBtn clicked");
       $("#addPolygonsMenu").css("display", "block");
     });
+
+    $("#collapseChartBtn").click(function() {
+      var uncollapsedHeight = 140;
+      var collapsedHeight = 45;
+      // What, just make it x-pixels tall? 
+      // Make it 45 pixels tall. Yeah.
+      // But hide the lines. And the y axis.
+      // If the chart isn't collapsed, that is.
+      // Otherwise, uncollapse it!
+      // Oh, and change the icon in the button. 
+      var chart = $("#timelineWidgetContainer");
+      if(chart.hasClass("collapsed")) {
+        chart.css("height", uncollapsedHeight);
+        timelineChart.resize();
+        timelineChart.showLines();
+
+        $("#collapseChartBtn").html('<svg class="icon"><use xlink:href="iconDefs.svg#down" /></svg>')
+
+
+        chart.removeClass("collapsed");
+      } else {
+        timelineChart.hideLines();
+        chart.css("height", collapsedHeight);
+        timelineChart.resize();
+
+        $("#collapseChartBtn").html('<svg class="icon"><use xlink:href="iconDefs.svg#up" /></svg>')
+        chart.addClass("collapsed");
+      }
+
+
+      // timelineChart.hideLines();
+      // $("#timelineWidgetContainer");
+    });
+
   }
 
   function initModals() {
@@ -618,11 +652,33 @@ LTVis.GUI = (function() {
       "2009-06-01",
       "2010-06-01"
     ];
-    timelineChart = new LTVis.TimelineChart("timeRangeContainer", fakeDates);
+    timelineChart = new LTVis.TimelineChart("timelineWidget", fakeDates);
     timelineChart.on("change", function() {
       // console.log(timelineChart.getSelectedDate());
       LTVis.timelineDateChanged(timelineChart.getSelectedDate());
     });
+
+
+    // Add a fake line to the widget. C'mon. 
+    var line1 = {
+      "2000-06-01": 70314.94714178116,
+      "2001-06-01": 70300.14104355505,
+      "2002-06-01": 69922.46855829416,
+      "2003-06-01": 70106.94013193776,
+      "2004-06-01": 69984.5749006571,
+      "2005-06-01": 69789.50853959432,
+      "2006-06-01": 69670.16361582214,
+      "2007-06-01": 69660.00609303171,
+      "2008-06-01": 69310.96638184038,
+      "2009-06-01": 69160.56927252423,
+      "2010-06-01": 69193.47928732826
+    };
+    timelineChart.addLine(line1);
+
+    window.addEventListener("resize", function() {
+      timelineChart.resize();
+    })
+
     // Ok, now hide it. because it can't be visible until later. 
     // $("#timeRangeContainer").hide();
   }
@@ -635,8 +691,6 @@ LTVis.GUI = (function() {
       initMenus();
       initSummaryPolygonSelections();
       initTimelineChart();
-
-      // initialize a timeline slider
 
       $(".chartMenuCancelButton").click(function() {
         cancelChartSetup();

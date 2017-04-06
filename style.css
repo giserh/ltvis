@@ -33,7 +33,7 @@ button.iconBtn {
   height: 50px;
   padding: 5px;
   background: rgb(250,250,250);
-  background: rgba(250,250,250,0.8);
+  /*background: rgba(250,250,250,0.8);*/
   border-radius: 7px;
   z-index: 1;
 }
@@ -58,73 +58,52 @@ button.iconBtn::-moz-focus-inner {
     border: 0 none !important;
 }
 
-/*button#infoBtn {
-  position: absolute;
-  left: 10px;
-  top: 100px;
-  width: 40px;
-  height: 40px  ;
-}
-
-button#layerBtn {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-}
-
-button#menuBtn {
-  position: absolute;
-  top: 5px;
-  right: 70px;
-}
-
-button#downloadBtn {
-  position: absolute;
-  bottom: 40px;
-  right: 5px;
-}*/
-
-button#chartBtn {
-
-}
-
-button#shapeBtn {
-  bottom: 0px;
-  position: absolute;
-}
-
 
 /* ---------------- Timeline Widget ---------------*/
 
-#timelineContainer {
-  height: 105px;
-  width: 450px;
+#timelineWidgetContainer {
+  height: 140px;
+  width: 100%;
+  max-width: 800px;
   background: none;
   z-index: 2;
   position: absolute;
-  bottom: 20px;
+  bottom: 24px;
   margin: 0px auto;
   left: 0px;
   right: 0px;
 }
 
-#timeRangeContainer {
-  width: 395px;
+#timelineWidget {
+  width: 100%;
   height: 100%;
   background: rgb(255,255,255);
   background: rgba(255,255,255,0.9);
   border-radius: 7px;
 }
 
+
 #timelineButtonContainer {
-  height: 105px;
-  width: 50px;
   position: absolute;
-  right: 0px;
-  top: 0px;
+  right: 10px;
+  top: -20px;
 }
 
-div.timelineChartTooltip { 
+#chartBtn, #collapseChartBtn {
+  width: 30px;
+  height: 30px;
+  border-style: solid;
+  /*background: rgb(255,255,255);*/
+  border-color: rgb(220,220,220);
+}
+
+#chartBtn:focus, #collapseChartBtn:focus {
+  border-color:rgb(220,220,220);
+}
+
+
+
+/*div.timelineChartTooltip { 
     position: absolute;     
     width: 60px;          
     height: 28px;         
@@ -136,7 +115,7 @@ div.timelineChartTooltip {
     border-radius: 8px;     
     pointer-events: none;
     z-index: 3;     
-}
+}*/
 
 
 /* ---------------- Modals ---------------*/
@@ -200,19 +179,6 @@ div.timelineChartTooltip {
   font-weight: bold;
 }
 
-/*.close {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  height: 16px;
-  width: 16px;
-  cursor: pointer;
-
-  color: black;
-  font-size: 28px;
-  font-weight: bold;
-}*/
-
 .close:hover,
 .close:focus {
     background-color: black;
@@ -273,54 +239,6 @@ div.timelineChartTooltip {
 .dataSelectionText h3{
   margin-top: 0px;
 }
-
-
-
-
-/* ---------------- Menu Windows ---------------*/
-
-.menuWindow {
-  background-color: white;
-  border-style: solid;
-  border-width: 1px;
-  border-color: rgb(210,210,210);
-  border-radius: 7px;
-  padding: 4px;
-}
-
-.menuWindowHeader {
-  height: auto;
-}
-
-.menuWindowHeader h3{
-  margin: 3px;
-}
-
-
-#addPolygonsMenu {
-  display: none;
-  height: auto;
-  max-height: 300px;
-  overflow: auto;
-  width: 442px;
-  z-index: 2;
-  position: absolute;
-  bottom: 130px;
-  margin: 0px auto;
-  left: 0px;
-  right: 0px;
-}
-
-.menuWindowContent {
-  padding: 5px;
-}
-
-.menuBtn {
-  display: block;
-}
-
-
-
 
 
 

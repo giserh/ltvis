@@ -1,5 +1,10 @@
 LTVis.TimelineChart = function(divID, inputSnappingDates){
   "use strict";
+
+  var settings = {
+    showLines: true
+  }
+
   var chartDiv = d3.select("#" + divID);
   var margins = {top: 10, right: 20, bottom: 25, left: 30};
   var width;
@@ -146,7 +151,7 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
             "translate(" + xScale(d) + "," + height + ")")
       .attr("y2", -height)
       .attr("y2", function() {
-        if(lineData.length>0) {
+        if(lineData.length>0 && settings.showLines) {
           return -height;
         } else {
           return 0;
@@ -169,7 +174,7 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
 
   function updateScaleRanges() {
     xScale.range([0, width]).nice();
-    if (lineData.length > 0) {
+    if (lineData.length > 0 && settings.showLines) {
       yScale.range([height, 0]).nice();
     } else {
       yScale.range([height, height]).nice();
@@ -194,7 +199,7 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
     xScale.domain(datesExtent);
 
     // yScale depends on the existing lineData
-    if(lineData.length > 0) {
+    if(lineData.length > 0 && settings.showLines) {
       var minY = Infinity;
       var maxY = Number.NEGATIVE_INFINITY;
       // Loop through each lineData element...
@@ -361,9 +366,12 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
     updateSlider(selectedSnappingDate);
 
     // Loop through the lineData array, drawing svg lines.
-    for (var i = 0; i < lineData.length; i += 1) {
-      drawLine(lineData[i]);
-    }
+
+    if(settings.showLines) {
+      for (var i = 0; i < lineData.length; i += 1) {
+        drawLine(lineData[i]);
+      }
+    }    
   }
 
   // Adjusts the margin values, which determine the white space around the
@@ -423,7 +431,7 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
     },
     removeLines: function() {
       linesSVG.selectAll("path").remove();
-      margins.left = 35;
+      // margins.left = 35;
       lineData = [];
       drawLines();
     },
@@ -434,6 +442,15 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
       return selectedSnappingDate;
     },
 
+    hideLines: function() {
+      settings.showLines = false;
+      drawLines();
+    },
+
+    showLines: function() {
+      settings.showLines = true;
+      drawLines();
+    },
 
     // events!
     on: function(event, callback) {
