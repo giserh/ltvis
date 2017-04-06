@@ -540,43 +540,38 @@ LTVis.GUI = (function() {
     });
 
     $("#collapseChartBtn").click(function() {
-      var uncollapsedHeight = 140;
-      var collapsedHeight = 45;
-      // What, just make it x-pixels tall? 
-      // Make it 45 pixels tall. Yeah.
-      // But hide the lines. And the y axis.
-      // If the chart isn't collapsed, that is.
-      // Otherwise, uncollapse it!
-      // Oh, and change the icon in the button. 
       var chart = $("#timelineWidgetContainer");
       if(chart.hasClass("collapsed")) {
-        chart.css("height", uncollapsedHeight);
-        timelineChart.resize();
-        timelineChart.showLines();
-
-        $("#collapseChartBtn").html('<svg class="icon"><use xlink:href="iconDefs.svg#down" /></svg>')
-
-
-        chart.removeClass("collapsed");
+        uncollapseTimelineChart();
       } else {
-        timelineChart.hideLines();
-        chart.css("height", collapsedHeight);
-        timelineChart.resize();
-
-        $("#collapseChartBtn").html('<svg class="icon"><use xlink:href="iconDefs.svg#up" /></svg>')
-        chart.addClass("collapsed");
+        collapseTimelineChart();
       }
-
-
-      // timelineChart.hideLines();
-      // $("#timelineWidgetContainer");
     });
+  }
 
+  function uncollapseTimelineChart() {
+    // TODO somehow grab this height when the timeline is init'ed? 
+    var uncollapsedHeight = 140; 
+    var chart = $("#timelineWidgetContainer");
+    chart.css("height", uncollapsedHeight);
+    timelineChart.resize();
+    timelineChart.showLines();
+    $("#collapseChartBtn").html('<svg class="icon"><use xlink:href="iconDefs.svg#down" /></svg>')
+    chart.removeClass("collapsed"); 
+  }
+
+  function collapseTimelineChart() {
+    var collapsedHeight = 45;
+    var chart = $("#timelineWidgetContainer");
+    chart.css("height", collapsedHeight);
+    timelineChart.hideLines();
+    timelineChart.resize();
+    $("#collapseChartBtn").html('<svg class="icon"><use xlink:href="iconDefs.svg#up" /></svg>')
+    chart.addClass("collapsed");
   }
 
   function initModals() {
     $(window).click(function(e) {
-      // console.log(e);
       if($(e.target).hasClass("modal")) {
         $(e.target).css("display", "none");
         resetChartMenu();
@@ -613,7 +608,6 @@ LTVis.GUI = (function() {
       var id = $(this).attr("id");
       var config;
       var pathToGeoJSON = root + id + "_geom.json";
-      // var pathToData =    root + id + "_data.json";
       var pathToData =    root + id + "_data.csv";
       LTVis.loadSummaryData(pathToGeoJSON,pathToData);
       $(".modal").css("display", "none"); 
@@ -654,10 +648,8 @@ LTVis.GUI = (function() {
     ];
     timelineChart = new LTVis.TimelineChart("timelineWidget", fakeDates);
     timelineChart.on("change", function() {
-      // console.log(timelineChart.getSelectedDate());
       LTVis.timelineDateChanged(timelineChart.getSelectedDate());
     });
-
 
     // Add a fake line to the widget. C'mon. 
     var line1 = {
