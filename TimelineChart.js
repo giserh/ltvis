@@ -22,18 +22,35 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
   // Select a default snapping date. Maybe the middle one for now.
   var selectedSnappingDate = snappingDates[(Math.round((snappingDates.length - 1) / 2))];
 
+  // lineData is an array of objects formatted as {date: date, value: value}, 
+  // and is used to draw the data lines on the chart.
+  // rawLineData are non-formatted {date: value} pairs as they were passed in, 
+  // useful for drawing focus points on the chart quickly. Both are updated
+  // any time a line is added to the chart.
   var lineData = [];
+  var rawLineData = []; 
+
+  // d3.line is a tool for creating path SVG strings, and this defines how the 
+  // lineData is processed when it's passed in later. 
   var line = d3.line()
                .defined(function(d) { return d; })
                .x(function(d) { return xScale(d.date); })
                .y(function(d) { return yScale(d.value); });
 
+  // Define scales and axes.
   var xScale = d3.scaleTime();
   var yScale = d3.scaleLinear();
   var xAxis = d3.axisBottom(xScale);
   var yAxis = d3.axisLeft(yScale);
+  var xAxisName = "Date";
+  var yAxisName = "y";
 
-  // Append an svg and layers for the svg
+  // Here all the different SVG groups are defined and layered in the order they 
+  // need to appear on the chart. 
+  // 'svg' is the main SVG object where everything is drawn, and spans the entire
+  // div.
+  // 'chart' is another SVG group division where pretty much everything is drawn.
+  // 'mouseCatcher' is for capturing hover events on the chart.
   var svg = chartDiv.append("svg");
   var chart = svg.append("g")
         .attr("transform", "translate(" + margins.left + "," + margins.top + ")")
@@ -42,6 +59,12 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
   var snappingTicks = chart.append("g").attr("class", "snappingTicks");
   var yAxisSVG = chart.append("g").attr("class", "y axis");
   var linesSVG = chart.append("g").attr("class", "linesSVG");
+  var mouseCatcher = chart.append("rect").attr("class", "mouseCatcher")
+        .style("fill", "none")
+        .style("pointer-events", "all");
+  var focusPoints = chart.append("g")
+      .style("display", "none")
+      .attr("class", "focusPoints");
   var ghostHandle = chart.append("g")
         .attr("class", "ghostHandle")
         .style("pointer-events", "none");
@@ -49,11 +72,16 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
         .attr("class", "sliderHandle")
         .style("pointer-events", "all");
 
-  // Tooltip stuff
+  // The dateTooltip only appears when the sliderHandle is being dragged or
+  // hovered.
+  // The focusTooltip is shown only when focus points are hovered over. 
+  // TODO Maybe just one tooltip can be used for both? Would that be easier?
   var dateTooltip = d3.select("#" + divID).append("div")
         .attr("class", "dateTooltip")       
         .style("display", "none");
-        // .style("white-space", "nowrap");
+  var focusTooltip = d3.select("#" + divID).append("div")
+        .attr("class", "focusTooltip")
+        .style("display", "none");
 
 
   // var formatMonth = d3.timeFormat("%b");
@@ -65,6 +93,23 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
     return months[date.getMonth()];
   }
 
+  // Convert a date object into a "yyyy-mm-dd" string, which is the format
+  // used for keys in the rawLineData objects.
+  function dateToLineDataString(d) {
+    var year = d.getFullYear();
+    var day = d.getDate();
+    var month = d.getMonth() + 1;
+    if(String(month).length < 2) {
+      month = "0" + month;
+    }
+    if(String(day).length < 2) {
+      day = "0" + day;
+    }
+    return [year,month,day].join("-");
+  }
+
+  // Update the text in the dateTooltip with the provided date,
+  // and move it above the snapping point for that date on the slider
   function updateDateTooltip(date) {
     dateTooltip.html(function() {
       var month = formatMonth(date);
@@ -79,17 +124,99 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
     })
   } 
 
+  // d is rawLineData for one line. 
+  function updateFocusTooltip(d, date) {
+    var value = d[dateToLineDataString(date)];
+    focusTooltip.html(function() {
+      var m = formatMonth(date);
+      var day = date.getDate();
+      var y = date.getFullYear();
+      var dateString = xAxisName + ": " + m + " " + day + ", " + y;
+      return dateString + "<br/>" + yAxisName + ": " + value;
+    })
+    .style("left", function() {
+      return (xScale(date) + margins.left + 5) + "px";
+    })
+    .style("bottom", function() {
+      return  (height-yScale(value)+margins.bottom + 5) + "px";
+    })
+  }
+
+  function configFocusPoints() {
+    var points = focusPoints.selectAll("circle")
+        .data(rawLineData)
+        .enter().append("circle")
+        .attr("r", 4)
+        .attr("fill", "#fff")
+        .attr("stroke", "rgb(120,120,120")
+        .on("mouseover", function(d) { 
+          if(settings.showLines) {
+            focusPoints.style("display", null);
+            d3.select(this)
+              .attr("r", 6);
+            // Show and place the focusTooltip.
+            focusTooltip.style("display", null);
+            var nearestSnappingDate = getNearestSnappingDate(d3.mouse(mouseCatcher.node())[0]);
+            updateFocusTooltip(d, nearestSnappingDate);
+          }
+        })
+        .on("mouseout", function() { 
+          if(settings.showLines) {
+            focusPoints.style("display", "none");
+            d3.select(this)
+              .attr("r", 4);
+            // hide the focusTooltip
+            focusTooltip.style("display", "none");
+          }
+        })
+        .on("mousemove", function() {
+          if(settings.showLines) {
+            mousemove();
+          }
+        });
+
+
+    mouseCatcher.on("mouseover", function() {
+        if(settings.showLines) {
+          focusPoints.style("display", null);
+        } 
+        
+      })
+      .on("mouseout", function() { 
+        if(settings.showLines) {
+          focusPoints.style("display", "none");
+        }
+      })
+      .on("mousemove", function() {
+        if(settings.showLines) {
+          mousemove();
+        }
+      });
+
+    function mousemove() {
+      var nearestSnappingDate = getNearestSnappingDate(d3.mouse(mouseCatcher.node())[0]);
+      focusPoints.selectAll("circle").each(function(d) {
+        // set the xy to the date/value
+        d3.select(this)
+          .attr("transform",
+                "translate(" + xScale(nearestSnappingDate) + "," +
+                           yScale(d[dateToLineDataString(nearestSnappingDate)]) + ")");
+      })
+    }
+  }
+
   function configSlider() {
     
     var handleLine = sliderHandle.append("line")
           .style("stroke", "rgb(150,150,150")
           .style("stroke-width", "1px")
-          .attr("stroke-dasharray","5, 5");
+          .attr("stroke-dasharray","5, 5")
+          .style("pointer-events", "none");
 
     var circle = sliderHandle.append("circle")
           .style("stroke", "none")
           .style("fill", "rgb(102,189,180)")
-          .attr("r", 6);
+          .attr("r", 7);
 
     var ghostCircle = ghostHandle.append("circle")
           .style("stroke", "none")
@@ -100,6 +227,14 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
     sliderHandle
       .on("mouseover", function() {
         console.log("slider handle mouseover");
+        // show the tooltip!
+        var x = d3.mouse(this)[0];
+        var nearestSnappingDate = getNearestSnappingDate(x);
+        dateTooltip.style("display", null);
+        updateDateTooltip(nearestSnappingDate);
+      })
+      .on("mouseout", function() {
+        dateTooltip.style("display", "none");
       });
 
     sliderHandle.call(d3.drag()
@@ -108,7 +243,7 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
         .on("end", dragEnd));
 
     function drag() {
-
+      mouseCatcher.style("pointer-events", "none");
       // Get the location of the mouse
       var x = d3.mouse(this)[0];
 
@@ -123,14 +258,14 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
       updateSlider(xScale.invert(x));
 
       // Change the style to dragging style
-      circle.attr("r", 7)
-            .style("fill", "rgb(80,160,155"); //"rgb(102,189,180"
+      circle.style("fill", "rgb(80,160,155"); //"rgb(102,189,180"
 
 
       // show the ghostCircle!
       ghostCircle.style("display", null);
       // put the ghostCircle somewhere! The nearest snapping date!
       var nearestSnappingDate = getNearestSnappingDate(x);
+
       ghostCircle.attr("transform",
                        "translate(" + xScale(nearestSnappingDate) + "," + height + ")");
 
@@ -143,15 +278,14 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
       
     }
     function dragEnd() {
-
+      mouseCatcher.style("pointer-events", "all");
       // find the snapping date closest to the mouse location
       var nearestSnappingDate = getNearestSnappingDate(d3.mouse(this)[0]);
 
       setSelectedSnappingDate(nearestSnappingDate);
 
       // Change the style back to not-dragging style
-      circle.attr("r", 6)
-            .style("fill", "rgb(102,189,180");
+      circle.style("fill", "rgb(102,189,180");
       ghostCircle.style("display", "none");
       dateTooltip.style("display", "none");
     }
@@ -410,7 +544,10 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
       for (var i = 0; i < lineData.length; i += 1) {
         drawLine(lineData[i]);
       }
-    }    
+    }
+    // make the focus points for the lines.
+    configFocusPoints();
+
   }
 
   // Adjusts the margin values, which determine the white space around the
@@ -445,6 +582,7 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
     fitToDiv();
     // Set up a starting location for the slider handle. Maybe the earliest date.
     configSlider();
+    configFocusPoints();
     updateSlider(selectedSnappingDate);
 
   }
@@ -459,11 +597,13 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
     },
     addLine: function(newLineData) {
       // format the data
+      rawLineData.push(newLineData);
       lineData.push(formatLineData(newLineData));
       drawLines();
     },
     addMultipleLines: function(newLinesData) {
       for (var i = 0; i < newLinesData.length; i += 1) {
+        rawLineData.push(newLinesData[i]);
         lineData.push(formatLineData(newLinesData[i]));
       }
       drawLines();
@@ -472,6 +612,7 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
       linesSVG.selectAll("path").remove();
       // margins.left = 35;
       lineData = [];
+      rawLineData = [];
       drawLines();
     },
     setDateRange: function(newDatesArray) {
@@ -489,6 +630,14 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
     showLines: function() {
       settings.showLines = true;
       drawLines();
+    },
+
+    setXAxisName: function(newName) {
+      xAxisName = newName;
+    },
+
+    setYAxisName: function(newName) {
+      yAxisName = newName;
     },
 
     // events!
