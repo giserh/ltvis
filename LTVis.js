@@ -1,359 +1,117 @@
-(function(){
+var LTVis = (function(){
 
 "use strict";
+var version = "As Dan Left It";
 
-var LTVis = {version: "testerville"};
+var activeDataLayer,
+    ramp;
 
-// Expose the app in the global scope
-window.LTVis = LTVis;
-
-LTVis.util = {
-  // Checks if d is a string before calling JSON.parse()
-  // If it isn't, it is assumed to be already parsed JSON.
-  // Useful when switching between working on the server vs locally.
-  parseJSON: function(d) {
+// Some utility functions -----------------------------------------------------
+function parseJSON(d) {
     // return typeof d === "object" ? d : JSON.parse(d);
     return typeof d === "string" ? JSON.parse(d) : d;
-  },
-  formatDate: function(d) {
-    var year = d.getUTCFullYear();
-    var day = d.getUTCDate();
-    var month = d.getUTCMonth() + 1;
-    if(String(month).length < 2) {
-      month = "0" + month;
-    }
-    if(String(day).length < 2) {
-      day = "0" + day;
-    }
-    return [year,month,day].join("-");
-  },
-  sortDates: function(datesArray) {
-    datesArray.sort(function(date1,date2) {
-      if (date1 > date2) return 1;
-      if (date1 < date2) return -1;
-      return 0;
-    });
   }
+function formatDate(d) {
+  var year = d.getUTCFullYear();
+  var day = d.getUTCDate();
+  var month = d.getUTCMonth() + 1;
+  if(String(month).length < 2) {
+    month = "0" + month;
+  }
+  if(String(day).length < 2) {
+    day = "0" + day;
+  }
+  return [year,month,day].join("-");
+}
+function sortDates(datesArray) {
+  datesArray.sort(function(date1,date2) {
+    if (date1 > date2) return 1;
+    if (date1 < date2) return -1;
+    return 0;
+  });
+}
+// End utility functions ------------------------------------------------------
+
+function endDrawPolygonsMode() {
+  $("#mainButtonGroup").show();
+  $("#drawingBtns").hide();
+  LTVis.Map.removeDrawToolbar();
 }
 
-// The Map module configures the map, manages map layers, and has functions 
-// for adding, removing, and styling layers. 
-LTVis.Map = (function() {
-
-  var map;
-  var areaSummaryLayers;
-  var canvasLayer = null;
-
-  // Prep needed stuff for drawing polygons
-  var drawnItems = new L.FeatureGroup();
-  var shapeOpts = { color:'#03f', weight:2 };
-  var drawControl = new L.Control.Draw({
-    position: "topright",
-    draw: {
-      // polyline: false,
-      // marker: false,
-      circle: false,
-      polyline: {
-        shapeOptions: { color:'#03f', weight:4, fill: false }
-      },
-      rectangle: {
-        shapeOptions: shapeOpts
-      },
-      polygon: {
-        shapeOptions: shapeOpts,
-        allowIntersection: false
-      }
-    },
-    edit: {
-      featureGroup: drawnItems
-    }
-  });
-
-  // Set up some markers
-  var blueMarker = new L.Icon({
-    iconUrl:   'lib/leaflet-color-markers/img/marker-icon-blue.png',
-    shadowUrl: 'lib/LeafletDraw/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-  });
-
-  var redMarker = new L.Icon({
-    iconUrl:   'lib/leaflet-color-markers/img/marker-icon-red.png',
-    shadowUrl: 'lib/LeafletDraw/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-  });
-
-  function createCanvasLayer(url) {
-    var CanvasLayer = L.GridLayer.extend({
-      createTile: function(coords, done){
-        var error;
-        // create a <canvas> element for drawing
-        var tile = L.DomUtil.create('canvas', 'leaflet-tile');
-        // setup tile width and height according to the options
-        var size = this.getTileSize();
-
-        tile.width = size.x;
-        tile.height = size.y;
-
-        var ctx = tile.getContext('2d');
-        var imageObj = new Image();
-        var zxy = coords.z + "/" + coords.x + "/" + coords.y;
-
-        // imageObj.src = [url, zxy + ".png"].join("/");
-        imageObj.src = url + "/" + zxy + ".png";
-        imageObj.onload = function() {
-
-          // Create a temp canvas.
-          var tempCanvas = document.createElement('canvas');
-          // Get the 2d context of the temp canvas
-          var tempContext = tempCanvas.getContext("2d");
-          // set the height and width of the temp canvas
-          tempCanvas.width = tile.width;
-          tempCanvas.height = tile.height;
-          // Draw this image onto the temp context
-          tempContext.drawImage(this, 0, 0);
-
-          // Get the data of the image drawn on the temp context
-          var tempImage = tempContext.getImageData(0,0,tile.width, tile.height);
-          var tempData = tempImage.data;
-
-          //loop over every 4th value of the tempData
-          for (var i = 0; i < tempData.length; i +=4) {
-            // change the color to something else!
-            var c = LTVis.getRGBAColorFromGrayscale(tempData[i]);
-            tempData[i] = c[0];
-            tempData[i + 1] = c[1];
-            tempData[i + 2] = c[2];
-            // tempData[i + 3] = c[3]; 
-          }
-          // draw the altered image to the tile 2d context!
-          ctx.putImageData(tempImage, 0, 0);
-          done(error, tile);
-        }
-        return tile;
-      }
+function loadDataset(datasetID, dateString) {
+  // TODO get the available dates for this dataset and pass them to the slider
+  // TODO Invent some awesome system for determining the color ramp
+  $.get('../mapping/maps/' + datasetID + '/metadata.yaml', null, function(data) {
+    var config = jsyaml.load(data);
+    // console.log(config);
+    // update the chart with dates!
+    var dates = config["band-dates"];
+    // I really want to convert this object to an array. 
+    var datesArray = $.map(dates, function(value, index) {
+      return [value];
     });
-    return new CanvasLayer();
-  }
-
-  return {
-
-    getAreaSummaryLayers: function() {
-      return areaSummaryLayers;
-    },
-
-    clearAreaSummaryPolygons: function() {
-      areaSummaryLayers.clearLayers();
-    },
-
-    addJSONAreaSummaryLayer: function(geoJSON) {
-      areaSummaryLayers.clearLayers();
-      var newLyr = L.geoJSON(geoJSON, {
-        style: function() {
-          return {
-            stroke: true,
-            color: '#03f',
-            weight: 1,
-            opacity: 1,
-            // fill: true,
-            fillColor: "#03f",
-            fillOpacity: 0
-          }
-        },
-        onEachFeature: onEachFeature
-      });
-
-      var bounds = newLyr.getBounds();
-      map.fitBounds(bounds);
-      areaSummaryLayers.addLayer(newLyr);
-
-      function onEachFeature(feature, layer) {
-        console.log(feature);
-        if(feature.geometry.type === "LineString") {
-          layer.setStyle({weight: 3});
-        } else if(feature.geometry.type === "Polygon") {
-          layer.setStyle({fillOpacity: 0.2})
-        }
-        layer.on({
-          mouseover: mouseover,
-          mouseout: mouseout,
-          click: click
-        })
-      }
-
-      function mouseover(e) {
-        var layer = e.target;
-        if(layer.feature.geometry.type === "Point") {
-          // Come kind of hover feedback for points?
-        } else if(layer.feature.geometry.type === "LineString") {
-          layer.setStyle({
-            weight: 4
-          })
-        } else {
-          // it's a Polygon probably.
-          layer.setStyle({
-            weight: 3
-          });
-        }
-      }
-
-      function mouseout(e) {
-        var layer = e.target;
-        if(layer.feature.geometry.type === "Point") {
-          // Come kind of hover feedback for points?
-        } else if(layer.feature.geometry.type === "LineString") {
-          layer.setStyle({
-            weight: 3
-          })
-        } else {
-          layer.setStyle({
-            weight: 1
-          });
-        }
-        
-      }
-
-      function click(e) {
-        // Style the clicked feature
-        newLyr.setStyle({color: "#03f"});
-        newLyr.eachLayer(function(lyr) {
-          if(lyr.feature.geometry.type === "Point") {
-            lyr.setIcon(blueMarker);
-          }
-        })
-        var layer = e.target;
-        if(layer.feature.geometry.type === "Point") {
-          e.target.setIcon(redMarker);
-        } else {
-          layer.setStyle({
-            color: "red"
-          })
-          if (!L.Browser.ie && !L.Browser.opera) {
-            layer.bringToFront();
-          }
-        }
-        LTVis.displayFeatureSummaryData(e.target.feature);
-      }
-    },
-
-    addCanvasLayer: function(layer) {
-      if(canvasLayer !== null) {
-        map.removeLayer(canvasLayer);
-      }
-      canvasLayer = layer;
-      layer.addTo(map);
-    },
-
-    loadDatasetTiles: function(url) {
-      // Make a canvas layer
-      var lyr = createCanvasLayer(url);
-      this.addCanvasLayer(lyr);
-    },
-
-    removeCanvasLayer: function() {
-      map.removeLayer(canvasLayer);
-      canvasLayer = null;
-    },
-
-    addLayer: function(layer) {
-      layer.addTo(map);
-    },
-
-    addDrawToolbar: function() {
-
-      // Decrease opacity of other layers
-      canvasLayer.setOpacity(0.5);
-
-      // Create the draw toolbar, configure some options, add it to the map!
-      map.addLayer(drawnItems);
-      map.addControl(drawControl);
-    },
-
-    removeDrawToolbar: function() {
-      // FIXME Set opacity back to whatever the UI setting is.
-      // Ehen there is one.
-      canvasLayer.setOpacity(1);
-      map.removeControl(drawControl);
-      map.removeLayer(drawnItems);
-    },
-
-    submitDrawnPolygons: function() {
-      // get the geojson out of the drawn polygon layer, yeah?
-      LTVis.Map.addJSONAreaSummaryLayer(drawnItems.toGeoJSON());
-    },
-
-    init: function(callback) {
-      // Load the config file for the map
-      $.get('configFiles/mapConfig.yaml', null, function(data) {
-        var mapConfig = jsyaml.load(data);
-        L.mapbox.accessToken = mapConfig.map.accessToken;
-
-        // Create the leaflet map, pass in the config options
-        map = L.mapbox.map('map', null, mapConfig.map.options);
-
-        // Set the initial map view
-        map.setView(
-          mapConfig.map.initialView.center, 
-          mapConfig.map.initialView.zoom
-        );
-
-        // Add a basemap layer
-        L.mapbox.styleLayer(
-          mapConfig.referenceLayer.styleLayer,
-          mapConfig.referenceLayer.options)
-          .addTo(map);
-
-        // Create a featureLayer object to store summary area polygons
-        areaSummaryLayers = L.mapbox.featureLayer().addTo(map);
-        
-        // L.control.attribution({position: "bottomleft"}).addTo(map);
-
-        // Add a scale bar scalebar to the map
-        // TODO Temporarily disabled until we pick a good place for it.
-        // L.control.scale().addTo(map);
-
-        // Configure events for drawing polygons
-        map.on('draw:created', function(e) {
-          drawnItems.addLayer(e.layer);
-        });
-        map.on('draw:deleted', function(e) {
-          // Maybe do something. Probably not.
-        });
-
-        // Done making the map! Let LTVis know.
-        callback(true);
-      });
+    sortDates(datesArray);
+    // console.log(datesArray);
+    // convert the dates to strings
+    for (var i = 0; i < datesArray.length; i += 1) {
+      datesArray[i] =  formatDate(datesArray[i]);
     }
-  };
-})();
+    // send them dates to the timeline!
+    // The timeline lives in the GUI. So you need to get in there!
+    LTVis.GUI.setTimelineSnappingDates(datesArray);
+  });
 
 
+  ramp = "BrBG";
+  activeDataLayer = datasetID;
+  var baseURL = "http://ltweb.ceoas.oregonstate.edu/mapping/tiles";
+  // TODO get the available properties from somewhere
+  var property = "tc_band5_k5_bph_ge_3_crm"; // Should come from ui settings.
+  var band;
+  // Set the band to the passed in dateString if there is one. 
+  // Though really it should come from the slider.
+  // ...Except the slider might be set to an invalid date.
+  // TODO Think about this.
+  if(typeof dateString !== "undefined") {
+    band = dateString;
+  } else {
+    var sliderDate = LTVis.GUI.getSelectedTimelineDate();
 
-// Start main app functions instide the LTVis namespace. 
-// These functions make calls to the modules defined
-// above. The only place where calls to the modules above should happen are 
-// in the LTVis namespace. 
-$.extend(LTVis, {
-  
+    band = formatDate(sliderDate);
+  }
+  // console.log(dateString);
+  var url = [baseURL, datasetID, property, band].join("/");
+  LTVis.Map.loadDatasetTiles(url);
+}
+
+function requestFeatureTimeSeriesData(feature, request, callback) {
+  $.ajax({
+    url: '/mapping/requestData/',
+    method: 'GET',
+    data: request,
+    error: function(R, msg, st) {
+       // $("#message").html('An error occurred in the web application.<br>'+
+       // R.responseText+'<br>'+msg+'<br>'+st +"<br>"+JSON.stringify(request));
+      console.log('An error occurred in the web application.<br>'+
+        R.responseText+'<br>'+msg+'<br>'+st +"<br>"+JSON.stringify(request));
+      callback(false);
+    },
+    success: function(R) {
+      // $("#message").html("<pre>"+R+"</pre>");
+      callback(parseJSON(R));
+    }
+  });
+}
+
+
+return {
+  version: version,
 
   loadSummaryData: function(pathToGeoJSON, pathToData, config) {
     // load the polygons to the map
     $.get(pathToGeoJSON, null, function(geoJSON) {
-      LTVis.Map.addJSONAreaSummaryLayer(LTVis.util.parseJSON(geoJSON));
+      LTVis.Map.addJSONAreaSummaryLayer(parseJSON(geoJSON));
     });
-
-    // $.get(pathToData, null, function(data) {
-    //   LTVis.activeAreaSummaryData = LTVis.util.parseJSON(data);
-    //   console.log(LTVis.activeAreaSummaryData);
-    // });
-    // d3.csv(pathToData, function(d) {
-    //   LTVis.activeAreaSummaryData = LTVis.formatImportedCSVForChart(d);
-    // });
   },
 
   // This may become obsolete if all summary data is requested dynamically from 
@@ -400,15 +158,15 @@ $.extend(LTVis, {
   // extended and refined. 
   getRGBAColorFromGrayscale: function(n) {
     var c;
-    if (LTVis.ramp === "BrBG") {
+    if (ramp === "BrBG") {
       c = d3.color(d3.interpolateBrBG((255-n)/255));
 
     }
-    if (LTVis.ramp ==="RdYlGn") {
+    if (ramp ==="RdYlGn") {
       c = d3.color(d3.interpolateRdYlGn((255-n)/255));
 
     }
-    if (LTVis.ramp === "RdBu") {
+    if (ramp === "RdBu") {
       c = d3.color(d3.interpolateRdBu((255-n)/255));
     }
     return [c.r, c.g, c.b, c.opacity];
@@ -418,72 +176,34 @@ $.extend(LTVis, {
     LTVis.Map.removeCanvasLayer();
   },
 
-
-
   loadDataset: function(datasetID, dateString) {
-    // TODO get the available dates for this dataset and pass them to the slider
-    // TODO Invent some awesome system for determining the color ramp
-    $.get('../mapping/maps/' + datasetID + '/metadata.yaml', null, function(data) {
-      var config = jsyaml.load(data);
-      // console.log(config);
-      // update the chart with dates!
-      var dates = config["band-dates"];
-      // I really want to convert this object to an array. 
-      var datesArray = $.map(dates, function(value, index) {
-        return [value];
-      });
-      LTVis.util.sortDates(datesArray);
-      // console.log(datesArray);
-      // convert the dates to strings
-      for (var i = 0; i < datesArray.length; i += 1) {
-        datesArray[i] =  LTVis.util.formatDate(datesArray[i]);
-      }
-      // send them dates to the timeline!
-      // The timeline lives in the GUI. So you need to get in there!
-      LTVis.GUI.setTimelineSnappingDates(datesArray);
-    });
-
-
-    LTVis.ramp = "BrBG";
-    LTVis.activeDataLayer = datasetID;
-    var baseURL = "http://ltweb.ceoas.oregonstate.edu/mapping/tiles";
-    // TODO get the available properties from somewhere
-    var property = "tc_band5_k5_bph_ge_3_crm"; // Should come from ui settings.
-    var band;
-    // Set the band to the passed in dateString if there is one. 
-    // Though really it should come from the slider.
-    // ...Except the slider might be set to an invalid date.
-    // TODO Think about this.
-    if(typeof dateString !== "undefined") {
-      band = dateString;
-    } else {
-      band = "2005-07-01";
-    }
-    // console.log(dateString);
-    var url = [baseURL, datasetID, property, band].join("/");
-    LTVis.Map.loadDatasetTiles(url);
+    loadDataset(datasetID, dateString)
   },
 
-  requestFeatureTimeSeriesData: function(feature, request, callback) {
-    $.ajax({
-      url: '/mapping/requestData/',
-      method: 'GET',
-      data: request,
-      error: function(R, msg, st) {
-         // $("#message").html('An error occurred in the web application.<br>'+
-         // R.responseText+'<br>'+msg+'<br>'+st +"<br>"+JSON.stringify(request));
-        console.log('An error occurred in the web application.<br>'+
-          R.responseText+'<br>'+msg+'<br>'+st +"<br>"+JSON.stringify(request));
-        callback(false);
-      },
-      success: function(R) {
-        // $("#message").html("<pre>"+R+"</pre>");
-        // console.log(LTVis.util.parseJSON(R));
-        callback(LTVis.util.parseJSON(R));
-      }
-    });
-  },
+  // requestFeatureTimeSeriesData: function(feature, request, callback) {
+  //   $.ajax({
+  //     url: '/mapping/requestData/',
+  //     method: 'GET',
+  //     data: request,
+  //     error: function(R, msg, st) {
+  //        // $("#message").html('An error occurred in the web application.<br>'+
+  //        // R.responseText+'<br>'+msg+'<br>'+st +"<br>"+JSON.stringify(request));
+  //       console.log('An error occurred in the web application.<br>'+
+  //         R.responseText+'<br>'+msg+'<br>'+st +"<br>"+JSON.stringify(request));
+  //       callback(false);
+  //     },
+  //     success: function(R) {
+  //       // $("#message").html("<pre>"+R+"</pre>");
+  //       callback(parseJSON(R));
+  //     }
+  //   });
+  // },
 
+  // This is called by the Map module whenever a polygon feature is clicked.
+  // TODO It might be better if instead there was a listener on the map that 
+  // fired when a polygon feature is clicked. This would allow the Map module
+  // to remain more independant of LTVis. Look at the d3 dispatch example 
+  // in the timeline chart module.
   displayFeatureSummaryData: function(feature) {
     // TODO This stuff needs to come from user-determined settings somewhere.
     var request = {
@@ -498,7 +218,7 @@ $.extend(LTVis, {
 
     console.log(JSON.stringify(feature.geometry));
 
-    LTVis.requestFeatureTimeSeriesData(feature, request, function(d) {
+    requestFeatureTimeSeriesData(feature, request, function(d) {
       // d is the time series data from the server!
       // Pass it into the graph here!
       LTVis.GUI.removeLinesFromTimelineChart();
@@ -511,7 +231,7 @@ $.extend(LTVis, {
   // This gets called by the GUI module when the timeline slider is moved.
   timelineDateChanged: function(newDate) {
     // Load a new dataset, but with the new date.
-    LTVis.loadDataset(LTVis.activeDataLayer, LTVis.util.formatDate(newDate));
+    loadDataset(activeDataLayer, formatDate(newDate));
   },
 
   startDrawPolygonsMode: function() {
@@ -526,16 +246,12 @@ $.extend(LTVis, {
     // add a toolbar for drawing polygons!
     LTVis.Map.addDrawToolbar();
   },
-  endDrawPolygonsMode: function() {
-    // Remove the toolbar from the map
 
-    $("#mainButtonGroup").show();
-    $("#drawingBtns").hide();
-    LTVis.Map.removeDrawToolbar();
-  },
+  endDrawPolygonsMode: endDrawPolygonsMode,
+
   submitDrawnPolygons: function() {
     // Submitting drawn polygons!
-    LTVis.endDrawPolygonsMode();
+    endDrawPolygonsMode();
     // Tell the map to do something with the drawn polygons
     LTVis.Map.submitDrawnPolygons();
   },
@@ -544,236 +260,10 @@ $.extend(LTVis, {
     LTVis.GUI.init();
     LTVis.Map.init(function(success) {
       callback(success);
-       // load the starting dataset
-      // TODO should maybe do this in main.js to keep it out of the module.
-      
-      
     });   
   }
+};
 
-
-}); // END $.extend(LTVis, {...})
-
-
-// The GUI module sets up menus and buttons unique to this page. 
-// TODO Should only call functions in the main LTVis app namespace, NOT make
-// calls directly to any other modules. E.g. don't call LTVis.Map.doSomething(), 
-// instead call LTVis.doSomething(), and let LTVis call LTVis.Map.doSomething().
-// While this is a bit redundant, it helps keep the GUI indepentant of other 
-// modules.
-LTVis.GUI = (function() {
-
-  var timelineChart;
-
-  function initIconButtons() {
-    $("#layerBtn").click(function() {
-      console.log("layerBtn clicked");
-      $(".menuWindow").css("display", "none");
-      $("#datasetModal").css("display", "block");
-    });
-
-    $("#chartBtn").click(function() {
-      // console.log("chartBtn clicked");
-      $(".menuWindow").css("display", "none"); // TODO May be obsolete soon.
-      $("#chartModal").css("display", "block");
-    }); 
-
-    $("#shapeBtn").click(function() {
-      console.log("shapeBtn clicked");
-      $("#addPolygonsMenu").css("display", "block");
-    });
-
-    $("#collapseChartBtn").click(function() {
-      var chart = $("#timelineWidgetContainer");
-      if(chart.hasClass("collapsed")) {
-        uncollapseTimelineChart();
-      } else {
-        collapseTimelineChart();
-      }
-    });
-  }
-
-  function uncollapseTimelineChart() {
-    // TODO somehow grab this height when the timeline is init'ed? 
-    var uncollapsedHeight = 140; 
-    var chart = $("#timelineWidgetContainer");
-    chart.css("height", uncollapsedHeight);
-    timelineChart.resize();
-    timelineChart.showLines();
-    $("#collapseChartBtn").html('<svg class="icon"><use xlink:href="iconDefs.svg#down" /></svg>')
-    chart.removeClass("collapsed"); 
-  }
-
-  function collapseTimelineChart() {
-    var collapsedHeight = 45;
-    var chart = $("#timelineWidgetContainer");
-    chart.css("height", collapsedHeight);
-    timelineChart.hideLines();
-    timelineChart.resize();
-    $("#collapseChartBtn").html('<svg class="icon"><use xlink:href="iconDefs.svg#up" /></svg>')
-    chart.addClass("collapsed");
-  }
-
-  function initModals() {
-    $(window).click(function(e) {
-      if($(e.target).hasClass("modal")) {
-        $(e.target).css("display", "none");
-        resetChartMenu();
-      }
-    });
-    $(".modal-close").click(function() {
-      $(".modal").css("display", "none");
-      resetChartMenu();     
-    });
-  }
-
-  function initMenus() {
-    $(".menu-close").click(function() {
-      console.log("menu-close clicked");
-      $(".menuWindow").css("display", "none");     
-    });
-  }
-
-  function initRasterDatasetSelections() {
-    $(".rasterDatasetSelection").click(function() {
-      var id = $(this).attr("id");
-      console.log(id);
-      // close the modal
-      $(".modal").css("display", "none"); 
-      // load the data associated with the id
-      LTVis.loadDataset(id);
-    });
-  }
-
-  function initSummaryPolygonSelections() {
-    $(".summaryPolygonsSelection").click(function() {
-      // Load them summary polygons
-      var root = "data/premadeAreaSummaries/";
-      var id = $(this).attr("id");
-      var config;
-      var pathToGeoJSON = root + id + "_geom.json";
-      var pathToData =    root + id + "_data.csv";
-      LTVis.loadSummaryData(pathToGeoJSON,pathToData);
-      $(".modal").css("display", "none"); 
-      resetChartMenu();
-    })
-  }
-
-  function hideAllChartMenuPanels() {
-    $(".chartMenuPanel").hide();
-  }
-
-  function resetChartMenu() {
-    // hide all the menus
-    hideAllChartMenuPanels();
-    // show the first one
-    $("#addSummaryPolygonOptions").show();
-  }
-
-  function cancelChartSetup() {
-    $(".modal").css("display", "none"); 
-    resetChartMenu();
-  }
-
-  function initTimelineChart() {
-    // Because it must have dates. Maybe there is another way.
-    var fakeDates = [
-      "2000-06-01",
-      "2001-06-01",
-      "2002-06-01",
-      "2003-06-01",
-      "2004-06-01",
-      "2005-06-01",
-      "2006-06-01",
-      "2007-06-01",
-      "2008-06-01",
-      "2009-06-01",
-      "2010-06-01"
-    ];
-    timelineChart = new LTVis.TimelineChart("timelineWidget", fakeDates);
-    timelineChart.on("change", function() {
-      LTVis.timelineDateChanged(timelineChart.getSelectedDate());
-    });
-
-
-    window.addEventListener("resize", function() {
-      timelineChart.resize();
-    })
-
-  }
-
-  return {
-    init: function() {
-      initIconButtons();
-      initModals();
-      initRasterDatasetSelections();
-      initMenus();
-      initSummaryPolygonSelections();
-      initTimelineChart();
-
-      $(".chartMenuCancelButton").click(function() {
-        cancelChartSetup();
-      });
-
-      $("#addSummaryAreasBtn").click(function() {
-        hideAllChartMenuPanels();
-        $("#addSummaryPolygonOptions").show();
-      });
-
-      // Add summary polygon
-      $("#createYourOwnSummaryBtn").click(function() {
-        hideAllChartMenuPanels();
-        $("#uploadPolygonsMenu").show();
-      });
-      $("#drawPolygonsBtn").click(function() {
-        // Hide the modal
-        cancelChartSetup(); // Not really cancelling. But it is closing the 
-        // modal.
-        // Go into some kind of "drawing Polygons" mode or something.
-        // This will add the polygon drawing tools, as well as 
-        // a Done and Cancel button.
-        LTVis.startDrawPolygonsMode();
-      });
-      $("#doneDrawingBtn").click(function() {
-        LTVis.submitDrawnPolygons();
-      });
-      $("#cancelDrawingBtn").click(function() {
-        LTVis.endDrawPolygonsMode();
-      });
-      $("#loadPremadeSummaryBtn").click(function() {
-        hideAllChartMenuPanels();
-        $("#selectPremadePolygonsMenu").show();
-      });     
-      $("#uploadPolygonsSubmitBtn").click(function() {
-        cancelChartSetup();
-      });
-      $("#uploadPolygonsMenuBackBtn").click(function() {
-        hideAllChartMenuPanels();
-        $("#addSummaryPolygonOptions").show();
-      });
-      $("#selectPremadePolygonsMenuBackBtn").click(function() {
-        hideAllChartMenuPanels();
-        $("#addSummaryPolygonOptions").show();
-      });
-    },
-    addLineToTimelineChart: function(lineData) {
-      timelineChart.addLine(lineData);
-    },
-    removeLinesFromTimelineChart: function() {
-      timelineChart.removeLines();
-    },
-    getSelectedTimelineDate: function() {
-      return timelineChart.getSelectedDate();
-    },
-    setTimelineSnappingDates: function(dates) {
-      timelineChart.setDateRange(dates);
-    },
-    getTimelineMinMax: function() {
-      return timelineChart.getDateStringMinMax();
-    }
-  };
-
-})(); // END LTVis.GUI module.
 
 })(); // END the app. No more internal app code after this. 
 
