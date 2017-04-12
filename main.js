@@ -2,5 +2,10 @@
 // TODO right now initial configuration happens in the module scripts. 
 // Might should be moved in here.
 $(document).ready(function() {
-  LTVis.init();
+  LTVis.init(function(success) {
+    if(success) {
+      var sliderDate = LTVis.GUI.getSelectedTimelineDate();
+      LTVis.loadDataset("mr224_biomass", LTVis.util.formatDate(sliderDate));
+    }
+  });
 });

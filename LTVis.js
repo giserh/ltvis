@@ -540,13 +540,14 @@ $.extend(LTVis, {
     LTVis.Map.submitDrawnPolygons();
   },
 
-  init: function() {
+  init: function(callback) {
     LTVis.GUI.init();
     LTVis.Map.init(function(success) {
+      callback(success);
        // load the starting dataset
       // TODO should maybe do this in main.js to keep it out of the module.
-      var sliderDate = LTVis.GUI.getSelectedTimelineDate();
-      LTVis.loadDataset("mr224_biomass", LTVis.util.formatDate(sliderDate));
+      
+      
     });   
   }
 
