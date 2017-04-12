@@ -16,9 +16,9 @@ LTVis.util = {
     return typeof d === "string" ? JSON.parse(d) : d;
   },
   formatDate: function(d) {
-    var year = d.getFullYear();
-    var day = d.getDate();
-    var month = d.getMonth() + 1;
+    var year = d.getUTCFullYear();
+    var day = d.getUTCDate();
+    var month = d.getUTCMonth() + 1;
     if(String(month).length < 2) {
       month = "0" + month;
     }
@@ -27,6 +27,13 @@ LTVis.util = {
     }
     return [year,month,day].join("-");
   },
+  sortDates: function(datesArray) {
+    datesArray.sort(function(date1,date2) {
+      if (date1 > date2) return 1;
+      if (date1 < date2) return -1;
+      return 0;
+    });
+  }
 }
 
 // The Map module configures the map, manages map layers, and has functions 
@@ -416,6 +423,27 @@ $.extend(LTVis, {
   loadDataset: function(datasetID, dateString) {
     // TODO get the available dates for this dataset and pass them to the slider
     // TODO Invent some awesome system for determining the color ramp
+    $.get('../mapping/maps/' + datasetID + '/metadata.yaml', null, function(data) {
+      var config = jsyaml.load(data);
+      // console.log(config);
+      // update the chart with dates!
+      var dates = config["band-dates"];
+      // I really want to convert this object to an array. 
+      var datesArray = $.map(dates, function(value, index) {
+        return [value];
+      });
+      LTVis.util.sortDates(datesArray);
+      // console.log(datesArray);
+      // convert the dates to strings
+      for (var i = 0; i < datesArray.length; i += 1) {
+        datesArray[i] =  LTVis.util.formatDate(datesArray[i]);
+      }
+      // send them dates to the timeline!
+      // The timeline lives in the GUI. So you need to get in there!
+      LTVis.GUI.setTimelineSnappingDates(datesArray);
+    });
+
+
     LTVis.ramp = "BrBG";
     LTVis.activeDataLayer = datasetID;
     var baseURL = "http://ltweb.ceoas.oregonstate.edu/mapping/tiles";
@@ -431,7 +459,7 @@ $.extend(LTVis, {
     } else {
       band = "2005-07-01";
     }
-    console.log(dateString);
+    // console.log(dateString);
     var url = [baseURL, datasetID, property, band].join("/");
     LTVis.Map.loadDatasetTiles(url);
   },
@@ -464,7 +492,7 @@ $.extend(LTVis, {
       'property': 'tc_nbr_k1_bph_ge_3_crm',
       'reducer': 'mean,std,median,min,max',
       'region': JSON.stringify(feature.geometry),
-      'date': JSON.stringify(['2000-01-01', '2010-12-31']),
+      'date': JSON.stringify(LTVis.GUI.getTimelineMinMax()),
       'format':'json' // choice of 'json' or 'yaml'
     }
 
@@ -516,6 +544,7 @@ $.extend(LTVis, {
     LTVis.GUI.init();
     LTVis.Map.init(function(success) {
        // load the starting dataset
+      // TODO should maybe do this in main.js to keep it out of the module.
       var sliderDate = LTVis.GUI.getSelectedTimelineDate();
       LTVis.loadDataset("mr224_biomass", LTVis.util.formatDate(sliderDate));
     });   
@@ -665,28 +694,11 @@ LTVis.GUI = (function() {
       LTVis.timelineDateChanged(timelineChart.getSelectedDate());
     });
 
-    // Add a fake line to the widget. C'mon. 
-    var line1 = {
-      "2000-06-01": 70314.94714178116,
-      "2001-06-01": 70300.14104355505,
-      "2002-06-01": 69922.46855829416,
-      "2003-06-01": 70106.94013193776,
-      "2004-06-01": 69984.5749006571,
-      "2005-06-01": 69789.50853959432,
-      "2006-06-01": 69670.16361582214,
-      "2007-06-01": 69660.00609303171,
-      "2008-06-01": 69310.96638184038,
-      "2009-06-01": 69160.56927252423,
-      "2010-06-01": 69193.47928732826
-    };
-    timelineChart.addLine(line1);
 
     window.addEventListener("resize", function() {
       timelineChart.resize();
     })
 
-    // Ok, now hide it. because it can't be visible until later. 
-    // $("#timeRangeContainer").hide();
   }
 
   return {
@@ -751,6 +763,12 @@ LTVis.GUI = (function() {
     },
     getSelectedTimelineDate: function() {
       return timelineChart.getSelectedDate();
+    },
+    setTimelineSnappingDates: function(dates) {
+      timelineChart.setDateRange(dates);
+    },
+    getTimelineMinMax: function() {
+      return timelineChart.getDateStringMinMax();
     }
   };
 

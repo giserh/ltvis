@@ -565,10 +565,17 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
   }
 
   function setDateRange(newDatesArray) {
-    snappingDateStrings = newDatesArray;
+    snappingDateStrings =[];
     snappingDates = [];
-    snappingDateStrings.forEach(function(d) {
-      snappingDates.push(parseTime(d));
+    newDatesArray.forEach(function(d) {
+      // it might be strings like yyyy-mm-dd
+      if(typeof d === "string") {
+        snappingDates.push(parseTime(d));
+        snappingDateStrings.push(d);
+      } else { // Or it might be date objects
+        throw new Error("setDateRange() requires an array of date strings like this: " + 
+          "['yyyy-mm-dd',...]");
+      }
     });
 
     // update the x axis.
@@ -638,6 +645,14 @@ LTVis.TimelineChart = function(divID, inputSnappingDates){
 
     setYAxisName: function(newName) {
       yAxisName = newName;
+    },
+
+    getDateStringMinMax: function() {
+
+      var min = snappingDateStrings[0];
+      var max = snappingDateStrings[snappingDateStrings.length-1];
+      return [min, max];
+
     },
 
     // events!

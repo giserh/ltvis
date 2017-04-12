@@ -2,6 +2,11 @@
 
 body {
   font: normal 100% 'Lato', sans-serif;
+  
+}
+
+html {
+  overflow: hidden;
 }
 
 /* ---------------- The map div ---------------- */
