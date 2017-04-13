@@ -1,9 +1,8 @@
 // The GUI module sets up menus and buttons unique to this page. 
-// TODO Should only call functions in the main LTVis app namespace, NOT make
+// This module should only call functions in the main LTVis module, and NOT make
 // calls directly to any other modules. E.g. don't call LTVis.Map.doSomething(), 
 // instead call LTVis.doSomething(), and let LTVis call LTVis.Map.doSomething().
-// While this is a bit redundant, it helps keep the GUI indepentant of other 
-// modules.
+// While this is a bit redundant, it helps keep modules independant.
 LTVis.GUI = (function() {
 
   var timelineChart;
@@ -16,7 +15,6 @@ LTVis.GUI = (function() {
     });
 
     $("#chartBtn").click(function() {
-      // console.log("chartBtn clicked");
       $(".menuWindow").css("display", "none"); // TODO May be obsolete soon.
       $("#chartModal").css("display", "block");
     }); 
@@ -172,9 +170,6 @@ LTVis.GUI = (function() {
         // Hide the modal
         cancelChartSetup(); // Not really cancelling. But it is closing the 
         // modal.
-        // Go into some kind of "drawing Polygons" mode or something.
-        // This will add the polygon drawing tools, as well as 
-        // a Done and Cancel button.
         LTVis.startDrawPolygonsMode();
       });
       $("#doneDrawingBtn").click(function() {

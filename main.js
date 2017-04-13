@@ -7,7 +7,7 @@ $(document).ready(function() {
       // var sliderDate = LTVis.GUI.getSelectedTimelineDate();
       LTVis.loadDataset("mr224_biomass");
     } else {
-      throw new Error("something went wrong with LTVis.init(), probably in LTVis.Map.init()")
+      throw new Error("LTVis.init() failed, probably a problem in LTVis.Map.init()");
     }
   });
 });
