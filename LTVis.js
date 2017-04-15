@@ -5,8 +5,7 @@ var version = "As Dan Left It";
 var Map; // This is set to LTVis.Map when init() is called.
 var GUI; // This is set to LTVis.GUI when init() is called.
 
-var activeDataLayer,
-    ramp;
+var activeDataLayer;
 
 // Some utility functions -----------------------------------------------------
 function parseJSON(d) {
@@ -40,9 +39,8 @@ function endDrawPolygonsMode() {
   Map.removeDrawToolbar();
 }
 
-function loadDataset(datasetID, dateString) {
-  // TODO get the available dates for this dataset and pass them to the slider
-  // TODO Invent some awesome system for determining the color ramp
+// TODO Throw an error if datasetID doesn't match any existing dataset.
+function loadDataset(datasetID) {
   $.get('../mapping/maps/' + datasetID + '/metadata.yaml', null, function(data) {
     var config = jsyaml.load(data);
     // console.log(config);
@@ -63,8 +61,6 @@ function loadDataset(datasetID, dateString) {
     GUI.setTimelineSnappingDates(datesArray);
   });
 
-
-  ramp = "BrBG";
   activeDataLayer = datasetID;
   var baseURL = "http://ltweb.ceoas.oregonstate.edu/mapping/tiles";
   // TODO get the available properties from somewhere
@@ -108,20 +104,15 @@ function requestFeatureTimeSeriesData(feature, request, callback) {
 return {
   version: version,
 
-  loadSummaryData: function(pathToGeoJSON, pathToData, config) {
+  loadSummaryData: function(pathToGeoJSON) {
     // load the polygons to the map
     $.get(pathToGeoJSON, null, function(geoJSON) {
       Map.addJSONAreaSummaryLayer(parseJSON(geoJSON));
     });
   },
 
-  // Not used anywhere right now. But it could be!
-  removeCanvasLayer: function() {
-    Map.removeCanvasLayer();
-  },
-
-  loadDataset: function(datasetID, dateString) {
-    loadDataset(datasetID, dateString)
+  loadDataset: function(datasetID) {
+    loadDataset(datasetID)
   },
 
   // This is called by the Map module whenever a polygon feature is clicked.
@@ -131,6 +122,9 @@ return {
   // in the timeline chart module.
   displayFeatureSummaryData: function(feature) {
     // TODO This stuff needs to come from user-determined settings somewhere.
+    // For example, the 'dataset' should be whatever dataset is 
+    // currently selected. The 'reducer' should be selectable somewhere in
+    // the chart settings menu (when there is one).
     var request = {
       'req-op': 'queryregion',
       'dataset': 'mr224_biomass',
@@ -181,6 +175,10 @@ return {
     Map.submitDrawnPolygons();
   },
 
+  // Set the color scale applied to dataset map tiles.
+  // positions: an array of numbers from 0 to 1 in ascending order.
+  // colors: an array of css-readable color strings. Must be the same length
+  // as the positions array.
   setMapTileColorScale: function(positions, colors) {
     Map.setTileColorScale(positions, colors);
   },

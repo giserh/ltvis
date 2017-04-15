@@ -93,8 +93,7 @@ LTVis.GUI = (function() {
       var id = $(this).attr("id");
       var config;
       var pathToGeoJSON = root + id + "_geom.json";
-      var pathToData =    root + id + "_data.csv";
-      LTVis.loadSummaryData(pathToGeoJSON,pathToData);
+      LTVis.loadSummaryData(pathToGeoJSON);
       $(".modal").css("display", "none"); 
       resetChartMenu();
     })
