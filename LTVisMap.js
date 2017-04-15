@@ -96,12 +96,6 @@ function ColorInterpolator(positions, colors) {
   // Access the image data of the color scale, which contains the rgb values
   // for each of the 256 colors in the scale. 
   var csImageData = contextColorScale.getImageData(0, 0, scaleWidth, 1).data;
-  // Convert an integer
-   t from 0 to 255 to a color based on the color scale.
-  // It's fast because it's just accessing the position of t*4 in 
-  // csImageData, which is 1-dimensional array of rgba values for each 
-  // of the 256 colors in the scale. 
-  // Returns [r,g,b,a]
   this.interpolateGrayscale = function(t) {
     var alpha = 255;
     if (t<0 || t > (scaleWidth-1)){
