@@ -58,6 +58,7 @@
 </button> -->
 
 
+<!-- This is the group of buttons at the top left of the GUI.  -->
 <div id="mainButtonGroup">
   <button class="iconBtn" id="menuBtn">
     <svg class="icon">
@@ -79,11 +80,11 @@
 </div>
 
 
-
+<!-- This div holds the timeline slider widget and the buttons 
+associated with it. The buttons are placed in their own div
+to make them easier to move around with css. -->
 <div id="timelineWidgetContainer">
-
   <div id="timelineWidget"></div>
-
   <div id="timelineButtonContainer">
     <button class="iconBtn" id="chartBtn">
       <svg class="icon">
@@ -95,11 +96,12 @@
         <use xlink:href="iconDefs.svg#down" />
       </svg>
     </button>
-
   </div>
-
 </div>
 
+<!-- These are a buttons for finishing or cancelling
+the drawing of polygons on the map. They are completely unstyled 
+and placed in a kindof crappy location at the moment. -->
 <div id="drawingBtns">
   <button id="doneDrawingBtn" class="drawingBtn">Done Drawing</button><br />
   <button id="cancelDrawingBtn" class="drawingBtn">Cancel</button>
@@ -108,6 +110,8 @@
 
 
 <!-- Data Selection Modal -->
+<!-- This is menu for loading a dataset. To add or remove datasets,
+look in the div in this menu with the class "modal-body" -->
 <div id="datasetModal" class="modal">
   <!-- Modal content -->
   <div class="modal-content" id="datasetModalContent">
@@ -118,38 +122,34 @@
     </div> <!-- End modal header -->
     <!-- Modal body -->
     <div class="modal-body">
-      <!-- Data selection divs, click to display data and close modal-->
-      <!-- <div class="dataSelection rasterDatasetSelection" id="minimum">
-        <div class="dataSelectionImage"><img src="assets/images/biomass_icon.jpg"></div>
-        <div class="dataSelectionText">
-          <h3>Minimum Biomass</h3>
-          description goes here
-        </div>
-      </div> -->
-
-      <!-- <div class="dataSelection rasterDatasetSelection" id="maximum">
-        <div class="dataSelectionImage"><img src="assets/images/disturbance_icon.jpg"></div>
-        <div class="dataSelectionText">
-          <h3>Maximum Biomass</h3>
-          description goes here
-        </div>
-      </div> -->
-
+      <!-- Data selection divs, click to display data and close modal -->
+      <!-- Notes: This div with the class "dataSelection" is clickable and loads 
+      the dataset with the name that exactly matches the id attribute of this 
+      div. The "dataSelection" class is used by the CSS for styling, but
+      the "rasterDatasetSelection" class is used by LTVis.GUI to add event 
+      listeners. For some reason. 
+       -->
+      <!-- TO ADD A DATASET SELECTION: Copy and past this entire div below, and change
+      the id attribute of the new div to match the name of a the dataset you want. 
+      Then change the path of the image in the "dataSelectionImage" to a new
+      image stored somewhere on the server (you'll have to make or find one and 
+      put it in a folder), and change the header and text in the 
+      "dataSelectionText" div. That's it! No Javascript changes needed,
+      but the dataset must exist in a folder in the mapping/maps directory on
+      ltweb, and the name of the folder must match the id of the new div. Also, the 
+      dataset folder must contain a document named "metadata.yaml" that contains
+      formatted metadata for the dataset. Look in the mr224_biomass dataset 
+      folder for an example of how to format the metadata. -->
       <div class="dataSelection rasterDatasetSelection" id="mr224_biomass">
-        <div class="dataSelectionImage"><img src="assets/images/disturbance_icon.jpg"></div>
+        <div class="dataSelectionImage">
+          <img src="assets/images/disturbance_icon.jpg">
+        </div>
         <div class="dataSelectionText">
           <h3>mr224_biomass</h3>
           This is a test dataset that Joe set up.
         </div>
       </div>
 
-     <!--  <div class="dataSelection rasterDatasetSelection" id="average">
-        <div class="dataSelectionImage"><img src="assets/images/disturbance_icon.jpg"></div>
-        <div class="dataSelectionText">
-          <h3>Average Biomass</h3>
-          description goes here
-        </div>
-      </div> --> <!-- End data selection divs -->
 
     </div> <!-- End modal-body div -->
   </div> <!-- End modal-content div -->

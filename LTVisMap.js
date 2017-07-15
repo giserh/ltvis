@@ -187,7 +187,13 @@ function addJSONAreaSummaryLayer(geoJSON) {
         fillOpacity: 0
       }
     },
-    onEachFeature: onEachFeature
+    // add event listeners to each feature. 
+    // So onEachFeature is a layer option provided by leaflet, and it loops over
+    // every feature in the layer and calls the provided function, passing in 
+    // the feature. In this case, the provided function is named onEachFeature.
+    // Which is confusing. The onEachFeature function attaches some event 
+    // listeners to each individual polygon in the new polyon layer. 
+    onEachFeature: onEachFeature 
   });
 
   var bounds = newLyr.getBounds();

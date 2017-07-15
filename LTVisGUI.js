@@ -75,7 +75,18 @@ LTVis.GUI = (function() {
     });
   }
 
+  
   function initRasterDatasetSelections() {
+    // TODO Load dataset descriptions and title from the metadata file 
+    // for each dataset. It would be like
+    // $(".rasterDatasetSelection").each(function() {
+    //   var id = $(this).attr("id");
+    //   $.get('../mapping/maps/' + id + '/metadata.yaml', null, function(data) {
+    //     var meta = jsyaml.load(data);
+    //     // get at the html of the dataSelection
+    //     // and update it using stuff in meta
+    //   });
+    // });
     $(".rasterDatasetSelection").click(function() {
       var id = $(this).attr("id");
       console.log(id);
@@ -91,7 +102,7 @@ LTVis.GUI = (function() {
       // Load them summary polygons
       var root = "data/premadeAreaSummaries/";
       var id = $(this).attr("id");
-      var config;
+      // var config;
       var pathToGeoJSON = root + id + "_geom.json";
       LTVis.loadSummaryData(pathToGeoJSON);
       $(".modal").css("display", "none"); 
